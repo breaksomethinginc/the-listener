@@ -17,6 +17,11 @@ interface ListenerCard {
 export default function Home() {
   const [listeners, setListeners] = useState<ListenerCard[] | null>(null);
   const [storage, setStorage] = useState("");
+  const [runState, setRunState] = useState<{
+    running: boolean;
+    done: number;
+    total: number;
+  }>({ running: false, done: 0, total: 0 });
 
   async function load() {
     const res = await fetch("/api/listeners");
@@ -35,6 +40,22 @@ export default function Home() {
     load();
   }
 
+  async function runAll() {
+    if (!listeners || listeners.length === 0) return;
+    setRunState({ running: true, done: 0, total: listeners.length });
+    for (let i = 0; i < listeners.length; i++) {
+      try {
+        // Sequential — each scan already fans out across many sources.
+        await fetch(`/api/listeners/${listeners[i].id}/scan`, { method: "POST" });
+      } catch {
+        // Per-listener failures are surfaced in the listener's lastResult.errors.
+      }
+      setRunState((prev) => ({ ...prev, done: i + 1 }));
+    }
+    await load();
+    setRunState({ running: false, done: 0, total: 0 });
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -47,9 +68,28 @@ export default function Home() {
             ) : null}
           </p>
         </div>
-        <Link href="/listeners/new" className="btn btn-primary">
-          + New listener
-        </Link>
+        <div className="row">
+          {listeners && listeners.length > 0 ? (
+            <button
+              className="btn"
+              onClick={runAll}
+              disabled={runState.running}
+              title="Run a fresh scan on every listener"
+            >
+              {runState.running ? (
+                <>
+                  <span className="spinner" /> Scanning {runState.done}/
+                  {runState.total}…
+                </>
+              ) : (
+                "▶ Run all"
+              )}
+            </button>
+          ) : null}
+          <Link href="/listeners/new" className="btn btn-primary">
+            + New listener
+          </Link>
+        </div>
       </div>
 
       {listeners === null ? (

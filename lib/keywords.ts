@@ -79,6 +79,14 @@ export function suggestSources(subject: string): FeedSource[] {
       trustWeight: 0.8,
     },
     {
+      id: `masto-${slug}`,
+      label: `Mastodon #${slug} (mastodon.social)`,
+      url: `#${slug}`,
+      platform: "mastodon",
+      enabled: true,
+      trustWeight: 0.7,
+    },
+    {
       id: `brave-${slug}`,
       label: `Brave News — ${q}  (needs BRAVE_API_KEY)`,
       url: q,

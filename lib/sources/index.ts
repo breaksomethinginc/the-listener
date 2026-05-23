@@ -13,6 +13,11 @@ import { fetchSubstack } from "./substack";
 import { fetchReddit } from "./reddit";
 import { fetchBluesky } from "./bluesky";
 import { fetchDiscord } from "./discord";
+import { fetchMastodon } from "./mastodon";
+import { fetchInstagram } from "./instagram";
+import { fetchTikTok } from "./tiktok";
+import { fetchFacebook } from "./facebook";
+import { fetchThreads } from "./threads";
 import { fetchApify } from "./apify";
 import { fetchBrave } from "./brave";
 
@@ -35,6 +40,11 @@ const ADAPTERS: Record<Platform, Adapter> = {
   reddit: fetchReddit,
   bluesky: fetchBluesky,
   discord: fetchDiscord,
+  mastodon: fetchMastodon,
+  instagram: fetchInstagram,
+  tiktok: fetchTikTok,
+  facebook: fetchFacebook,
+  threads: fetchThreads,
   apify: fetchApify,
   brave: fetchBrave,
 };

@@ -5,7 +5,8 @@ import type { FeedSource, KeywordBundle, Listener, Platform } from "./types";
 
 const PLATFORMS: Platform[] = [
   "rss", "atom", "json", "youtube", "rumble", "x", "twitter", "truth",
-  "truthsocial", "substack", "reddit", "bluesky", "discord", "apify", "brave",
+  "truthsocial", "substack", "reddit", "bluesky", "discord", "mastodon",
+  "instagram", "tiktok", "facebook", "threads", "apify", "brave",
 ];
 
 export function genId(): string {

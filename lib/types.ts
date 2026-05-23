@@ -14,6 +14,11 @@ export type Platform =
   | "reddit"
   | "bluesky"
   | "discord"
+  | "mastodon"
+  | "instagram"
+  | "tiktok"
+  | "facebook"
+  | "threads"
   | "apify"
   | "brave";
 

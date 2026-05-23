@@ -5,7 +5,8 @@ import type { FeedSource, KeywordBundle, Platform } from "@/lib/types";
 
 const PLATFORM_OPTIONS: Platform[] = [
   "rss", "youtube", "rumble", "x", "truthsocial", "substack",
-  "reddit", "bluesky", "discord", "apify", "brave",
+  "reddit", "bluesky", "mastodon", "instagram", "tiktok", "facebook",
+  "threads", "discord", "apify", "brave",
 ];
 
 type EditSource = FeedSource & { apifyInputText?: string };

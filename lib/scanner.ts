@@ -76,7 +76,13 @@ export function rankCandidates(
     });
   }
 
-  scored.sort((a, b) => b.score - a.score || +new Date(b.publishedAt) - +new Date(a.publishedAt));
+  scored.sort(
+    (a, b) =>
+      b.score - a.score ||
+      +new Date(b.publishedAt) - +new Date(a.publishedAt) ||
+      // Stable tiebreak so order is deterministic across runs.
+      a.id.localeCompare(b.id),
+  );
 
   const seen = new Set<string>();
   const ranked: CandidateItem[] = [];

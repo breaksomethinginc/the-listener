@@ -14,7 +14,15 @@ export async function POST(_req: Request, { params }: Ctx) {
     return Response.json({ error: "Listener not found" }, { status: 404 });
   }
 
-  const result = await runScan(listener);
+  let result;
+  try {
+    result = await runScan(listener);
+  } catch (e: any) {
+    return Response.json(
+      { error: `Scan failed: ${String(e?.message || e)}` },
+      { status: 500 },
+    );
+  }
 
   listener.lastResult = result;
   listener.lastRunAt = result.ranAt;
