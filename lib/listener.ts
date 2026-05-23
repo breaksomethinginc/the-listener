@@ -1,7 +1,17 @@
 // Helpers for creating and validating Listener objects from raw input
 // (API request bodies, the create/edit form, etc.).
 
-import type { FeedSource, KeywordBundle, Listener, Platform } from "./types";
+import type {
+  FeedSource,
+  KeywordBundle,
+  Listener,
+  ListenerMode,
+  Platform,
+} from "./types";
+
+function normalizeMode(v: unknown): ListenerMode {
+  return v === "video" ? "video" : "news";
+}
 
 const PLATFORMS: Platform[] = [
   "rss", "atom", "json", "youtube", "rumble", "x", "twitter", "truth",
@@ -67,6 +77,7 @@ export function makeListener(body: any): Listener {
     id: genId(),
     name: String(body?.name || "Untitled listener").slice(0, 140),
     subject: String(body?.subject || "").slice(0, 200),
+    mode: normalizeMode(body?.mode),
     keywords: normalizeKeywords(body?.keywords),
     sources: normalizeSources(body?.sources),
     createdAt: now,
@@ -80,6 +91,7 @@ export function applyEdit(existing: Listener, body: any): Listener {
     ...existing,
     name: String(body?.name ?? existing.name).slice(0, 140),
     subject: String(body?.subject ?? existing.subject).slice(0, 200),
+    mode: body?.mode ? normalizeMode(body.mode) : existing.mode ?? "news",
     keywords: body?.keywords
       ? normalizeKeywords(body.keywords)
       : existing.keywords,

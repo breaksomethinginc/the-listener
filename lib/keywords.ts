@@ -2,7 +2,7 @@
 // of working sources. The user can edit everything afterwards — this is
 // just a sensible default so a new listener works on the first run.
 
-import type { FeedSource, KeywordBundle } from "./types";
+import type { FeedSource, KeywordBundle, ListenerMode } from "./types";
 
 const STOPWORDS = new Set([
   "the", "a", "an", "and", "or", "of", "in", "on", "for", "to", "is", "are",
@@ -34,16 +34,17 @@ export function suggestKeywords(subject: string): KeywordBundle {
   };
 }
 
-/**
- * Build a default set of sources for a subject. The first four work with
- * zero API keys; Brave is included disabled (it needs BRAVE_API_KEY).
- */
-export function suggestSources(subject: string): FeedSource[] {
-  const q = subject.trim() || "news";
-  const enc = encodeURIComponent(q);
-  const slug =
+function makeSlug(q: string): string {
+  return (
     q.toLowerCase().replace(/[^\w]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28) ||
-    "listener";
+    "listener"
+  );
+}
+
+/** News-style defaults: text + RSS + social search. (Original behavior.) */
+function suggestNewsSources(q: string): FeedSource[] {
+  const enc = encodeURIComponent(q);
+  const slug = makeSlug(q);
 
   return [
     {
@@ -95,4 +96,94 @@ export function suggestSources(subject: string): FeedSource[] {
       trustWeight: 1,
     },
   ];
+}
+
+/**
+ * Video-style defaults: surface videos of people talking about the subject
+ * across YouTube, TikTok, Instagram, and Facebook. Covers hashtags,
+ * keyword search, and named handles (left as a placeholder so the user
+ * can fill in specific creators they care about).
+ */
+function suggestVideoSources(q: string): FeedSource[] {
+  const slug = makeSlug(q);
+
+  return [
+    // 1. Keyword search across YouTube — works with YOUTUBE_API_KEY or APIFY_TOKEN.
+    {
+      id: `yt-search-${slug}`,
+      label: `YouTube search — "${q}"`,
+      url: q,
+      platform: "youtube",
+      enabled: true,
+      trustWeight: 1,
+    },
+    // 2. YouTube handle slot — disabled, user fills in a creator/channel.
+    {
+      id: `yt-handle-${slug}`,
+      label: `YouTube channel — add an @handle`,
+      url: "",
+      platform: "youtube",
+      enabled: false,
+      trustWeight: 1,
+    },
+    // 3. TikTok hashtag — needs APIFY_TOKEN.
+    {
+      id: `tt-tag-${slug}`,
+      label: `TikTok #${slug}`,
+      url: `#${slug}`,
+      platform: "tiktok",
+      enabled: true,
+      trustWeight: 0.9,
+    },
+    // 4. TikTok handle slot — disabled, user fills in a creator.
+    {
+      id: `tt-handle-${slug}`,
+      label: `TikTok creator — add an @handle`,
+      url: "",
+      platform: "tiktok",
+      enabled: false,
+      trustWeight: 1,
+    },
+    // 5. Instagram hashtag — needs APIFY_TOKEN. Pulls Reels + posts.
+    {
+      id: `ig-tag-${slug}`,
+      label: `Instagram #${slug}`,
+      url: `#${slug}`,
+      platform: "instagram",
+      enabled: true,
+      trustWeight: 0.9,
+    },
+    // 6. Instagram handle slot.
+    {
+      id: `ig-handle-${slug}`,
+      label: `Instagram account — add an @handle`,
+      url: "",
+      platform: "instagram",
+      enabled: false,
+      trustWeight: 1,
+    },
+    // 7. Facebook page slot — Facebook has no public search; user must
+    //    point at a specific page they want to follow.
+    {
+      id: `fb-page-${slug}`,
+      label: `Facebook page — add a page URL`,
+      url: "",
+      platform: "facebook",
+      enabled: false,
+      trustWeight: 0.8,
+    },
+  ];
+}
+
+/**
+ * Build a default set of sources for a subject.
+ * - `news`  (default): broad news + social-search coverage, zero-key.
+ * - `video`: YouTube / TikTok / Instagram / Facebook discovery.
+ */
+export function suggestSources(
+  subject: string,
+  mode: ListenerMode = "news",
+): FeedSource[] {
+  const q = subject.trim() || "news";
+  return mode === "video" ? suggestVideoSources(q) : suggestNewsSources(q);
 }

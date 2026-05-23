@@ -58,6 +58,22 @@ export interface CandidateItem {
   matchedTerms: string[];
   /** Set by the dispatcher so scoring can apply the source trustWeight. */
   sourceId?: string;
+
+  // ── Optional rich-media fields (populated when the adapter has them) ──
+  /** Which platform this came from — used for embeds, badges, comment fetch. */
+  platform?: Platform;
+  /** Platform-native id — e.g. YouTube video id — for direct embed URLs. */
+  videoId?: string;
+  /** Creator handle / display name, e.g. "@senmarkkelly". */
+  creator?: string;
+  /** Link to the creator's profile (for outreach). */
+  creatorUrl?: string;
+  /** Engagement signals. All optional; renderers should hide when undefined. */
+  views?: number;
+  likes?: number;
+  commentCount?: number;
+  /** Video duration in seconds, when known. */
+  durationSec?: number;
 }
 
 export interface ScanError {
@@ -73,11 +89,15 @@ export interface ScanResult {
   ranked: CandidateItem[];
 }
 
+export type ListenerMode = "news" | "video";
+
 /** A saved listener — the thing the user creates, saves, and re-runs. */
 export interface Listener {
   id: string;
   name: string;
   subject: string;
+  /** "news" (default) or "video". Drives autofill + UI badge; runtime is identical. */
+  mode: ListenerMode;
   keywords: KeywordBundle;
   sources: FeedSource[];
   createdAt: string;

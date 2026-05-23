@@ -170,6 +170,7 @@ export default function ListenerDetailPage() {
           initial={{
             name: listener.name,
             subject: listener.subject,
+            mode: listener.mode ?? "news",
             keywords: listener.keywords,
             sources: listener.sources,
           }}

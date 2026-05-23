@@ -8,6 +8,7 @@ interface ListenerCard {
   id: string;
   name: string;
   subject: string;
+  mode?: "news" | "video";
   sources: { enabled: boolean }[];
   updatedAt: string;
   lastRunAt?: string;
@@ -120,7 +121,15 @@ export default function Home() {
               className="card link"
             >
               <div className="spread">
-                <p className="card-title">{l.name}</p>
+                <p className="card-title">
+                  <span
+                    title={l.mode === "video" ? "Video listener" : "News listener"}
+                    style={{ marginRight: 6 }}
+                  >
+                    {l.mode === "video" ? "🎥" : "📰"}
+                  </span>
+                  {l.name}
+                </p>
                 <button
                   className="icon-btn"
                   title="Delete"

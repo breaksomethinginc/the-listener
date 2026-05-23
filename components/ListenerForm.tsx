@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { FeedSource, KeywordBundle, Platform } from "@/lib/types";
+import type {
+  FeedSource,
+  KeywordBundle,
+  ListenerMode,
+  Platform,
+} from "@/lib/types";
 
 const PLATFORM_OPTIONS: Platform[] = [
   "rss", "youtube", "rumble", "x", "truthsocial", "substack",
@@ -14,6 +19,7 @@ type EditSource = FeedSource & { apifyInputText?: string };
 export interface ListenerFormValue {
   name: string;
   subject: string;
+  mode: ListenerMode;
   keywords: KeywordBundle;
   sources: FeedSource[];
 }
@@ -38,6 +44,7 @@ function toEditSource(s: FeedSource): EditSource {
 export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
+  const [mode, setMode] = useState<ListenerMode>(initial?.mode ?? "news");
   const [kwAny, setKwAny] = useState((initial?.keywords?.any ?? []).join(", "));
   const [kwBoost, setKwBoost] = useState(
     (initial?.keywords?.boost ?? []).join(", "),
@@ -61,7 +68,9 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
     setError(null);
     setSuggesting(true);
     try {
-      const res = await fetch(`/api/suggest?subject=${encodeURIComponent(s)}`);
+      const res = await fetch(
+        `/api/suggest?subject=${encodeURIComponent(s)}&mode=${mode}`,
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not build suggestions");
       const k: KeywordBundle = data.keywords;
@@ -128,6 +137,7 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
       await onSubmit({
         name: name.trim(),
         subject: subject.trim(),
+        mode,
         keywords: {
           any: splitList(kwAny),
           boost: splitList(kwBoost),
@@ -147,6 +157,32 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
 
       <div className="panel">
         <h2>Basics</h2>
+        <div className="field">
+          <label>Type</label>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${mode === "news" ? "btn-primary" : ""}`}
+              onClick={() => setMode("news")}
+              title="Articles, social posts, broad news coverage"
+            >
+              📰 News
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${mode === "video" ? "btn-primary" : ""}`}
+              onClick={() => setMode("video")}
+              title="Videos of people talking about your subject across YouTube, TikTok, Instagram, Facebook"
+            >
+              🎥 Video
+            </button>
+            <span className="faint" style={{ fontSize: 12 }}>
+              {mode === "video"
+                ? "Auto-fill will pull from YouTube, TikTok, Instagram, Facebook."
+                : "Auto-fill will pull from Google News, Bing News, Reddit, Bluesky, Mastodon."}
+            </span>
+          </div>
+        </div>
         <div className="field">
           <label>Listener name</label>
           <input

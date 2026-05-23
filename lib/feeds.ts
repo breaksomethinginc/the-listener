@@ -1,7 +1,7 @@
 // Generic feed parsing + small helpers shared by every adapter.
 // Zero npm dependencies — works in Node and the browser.
 
-import type { CandidateItem } from "./types";
+import type { CandidateItem, Platform } from "./types";
 
 /** Raw item shape adapters produce before scoring. */
 export interface RawItem {
@@ -12,6 +12,15 @@ export interface RawItem {
   publishedAt: string;
   imageUrl?: string;
   source: string;
+  // Optional rich-media fields — see CandidateItem for semantics.
+  platform?: Platform;
+  videoId?: string;
+  creator?: string;
+  creatorUrl?: string;
+  views?: number;
+  likes?: number;
+  commentCount?: number;
+  durationSec?: number;
 }
 
 /** Stable, short, deterministic id derived from a string. */
@@ -74,6 +83,14 @@ export function toCandidate(r: RawItem): CandidateItem {
     imageUrl: r.imageUrl,
     score: 0,
     matchedTerms: [],
+    platform: r.platform,
+    videoId: r.videoId,
+    creator: r.creator,
+    creatorUrl: r.creatorUrl,
+    views: r.views,
+    likes: r.likes,
+    commentCount: r.commentCount,
+    durationSec: r.durationSec,
   };
 }
 
