@@ -115,14 +115,23 @@ async function viaApifySearch(
   source: FeedSource,
   config: ListenerConfig,
 ): Promise<CandidateItem[]> {
+  // Default to apify/youtube-scraper, which is the most commonly used
+  // YouTube actor and accepts a startUrls list pointed at YouTube's
+  // results page. This input shape works across most YouTube scrapers
+  // on the Apify store.
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+    query,
+  )}`;
   return fetchApify(
     {
       ...source,
       platform: "apify",
-      apifyActor: source.apifyActor || "streamers/youtube-scraper",
+      apifyActor: source.apifyActor || "apify/youtube-scraper",
       apifyInput: source.apifyInput || {
-        searchKeywords: [query],
+        startUrls: [{ url: searchUrl }],
         maxResults: 25,
+        maxResultsShorts: 0,
+        maxResultStreams: 0,
       },
     },
     config,

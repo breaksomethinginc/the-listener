@@ -12,9 +12,18 @@ export async function GET(req: Request) {
   if (!subject) {
     return Response.json({ error: "Provide a ?subject=" }, { status: 400 });
   }
+  // Server-side knowledge of which paid APIs are wired up — autofill
+  // uses this to enable sources by default vs leaving them as
+  // "(needs X)" stubs.
+  const keys = {
+    apify: !!process.env.APIFY_TOKEN,
+    youtube: !!process.env.YOUTUBE_API_KEY,
+    brave: !!process.env.BRAVE_API_KEY,
+  };
   return Response.json({
     keywords: suggestKeywords(subject),
-    sources: suggestSources(subject, mode),
+    sources: suggestSources(subject, mode, keys),
     mode,
+    availableKeys: keys,
   });
 }
