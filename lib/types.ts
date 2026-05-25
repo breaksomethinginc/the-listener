@@ -54,7 +54,14 @@ export interface CandidateItem {
   publishedAt: string;
   summary?: string;
   imageUrl?: string;
+  /**
+   * Displayed score. Now represents virality (0–100): higher = more
+   * viewed/engaged/recent. Items must also clear a relevance check
+   * (keyword match) to appear in results.
+   */
   score: number;
+  /** Optional relevance number too, for the curious. */
+  relevance?: number;
   matchedTerms: string[];
   /** Set by the dispatcher so scoring can apply the source trustWeight. */
   sourceId?: string;
@@ -90,6 +97,7 @@ export interface ScanResult {
 }
 
 export type ListenerMode = "news" | "video";
+export type ListenerKind = "person" | "organization" | "event" | "topic";
 
 /** A saved listener — the thing the user creates, saves, and re-runs. */
 export interface Listener {
@@ -98,6 +106,12 @@ export interface Listener {
   subject: string;
   /** "news" (default) or "video". Drives autofill + UI badge; runtime is identical. */
   mode: ListenerMode;
+  /** What the subject is — used by the wizard for smarter source selection. */
+  kind?: ListenerKind;
+  /** Disambiguating context, e.g. "US Senator, Arizona, Democrat". */
+  context?: string;
+  /** Hard time filter — items older than this are dropped before scoring. Undefined = no filter. */
+  maxAgeDays?: number;
   keywords: KeywordBundle;
   sources: FeedSource[];
   createdAt: string;

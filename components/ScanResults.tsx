@@ -132,10 +132,21 @@ function CommentList({ videoId }: { videoId: string }) {
   );
 }
 
+// ── viral score tiering ──────────────────────────────────────────────
+function viralTier(score: number): { cls: string; emoji: string; label: string } {
+  if (score >= 70) return { cls: "hot", emoji: "🔥", label: "viral" };
+  if (score >= 40) return { cls: "warm", emoji: "📈", label: "trending" };
+  if (score >= 20) return { cls: "", emoji: "✨", label: "noticed" };
+  return { cls: "", emoji: "", label: "" };
+}
+
+const SCORE_TOOLTIP =
+  "Viral score (0–100). Combines reach (log-scaled views), engagement rate (likes/views, comments/views), and recency. Items without view data fall back to recency only. Items must also match your keywords to appear.";
+
 // ── result row ───────────────────────────────────────────────────────
 function ResultRow({ item }: { item: CandidateItem }) {
   const [playing, setPlaying] = useState(false);
-  const tier = item.score >= 20 ? "hot" : item.score >= 13 ? "warm" : "";
+  const tier = viralTier(item.score);
   const dur = fmtDuration(item.durationSec);
   const platformLabel =
     item.platform && PLATFORM_LABEL[item.platform]
@@ -160,8 +171,19 @@ function ResultRow({ item }: { item: CandidateItem }) {
 
   return (
     <div className="result">
-      <div>
-        <span className={cx("score", tier)}>{item.score}</span>
+      <div
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+        title={SCORE_TOOLTIP}
+      >
+        <span className={cx("score", tier.cls)}>{item.score}</span>
+        {tier.label ? (
+          <span
+            className="faint"
+            style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}
+          >
+            {tier.emoji} {tier.label}
+          </span>
+        ) : null}
       </div>
 
       {item.imageUrl ? (
@@ -329,7 +351,8 @@ function csvEscape(value: string): string {
 
 function toCsv(items: CandidateItem[]): string {
   const header = [
-    "score",
+    "viral_score",
+    "relevance",
     "title",
     "url",
     "platform",
@@ -346,6 +369,7 @@ function toCsv(items: CandidateItem[]): string {
   const rows = items.map((it) =>
     [
       String(it.score),
+      it.relevance !== undefined ? String(it.relevance) : "",
       it.title,
       it.url,
       it.platform || "",
@@ -407,13 +431,13 @@ export default function ScanResults({ result }: { result: ScanResult | null }) {
   return (
     <div>
       <div className="spread" style={{ marginBottom: 14, gap: 12 }}>
-        <span className="faint">
+        <span className="faint" title={SCORE_TOOLTIP}>
           {filtered.length}
           {filter && filtered.length !== allRanked.length
             ? ` of ${allRanked.length}`
             : ""}{" "}
-          result{filtered.length === 1 ? "" : "s"} · last scan{" "}
-          {timeAgo(ranAt)}
+          result{filtered.length === 1 ? "" : "s"} · ranked by viral
+          score · last scan {timeAgo(ranAt)}
         </span>
         <div className="row" style={{ gap: 8 }}>
           {allRanked.length > 0 ? (

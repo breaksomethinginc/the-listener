@@ -5,12 +5,25 @@ import type {
   FeedSource,
   KeywordBundle,
   Listener,
+  ListenerKind,
   ListenerMode,
   Platform,
 } from "./types";
 
 function normalizeMode(v: unknown): ListenerMode {
   return v === "video" ? "video" : "news";
+}
+
+const KINDS: ListenerKind[] = ["person", "organization", "event", "topic"];
+function normalizeKind(v: unknown): ListenerKind | undefined {
+  return typeof v === "string" && (KINDS as string[]).includes(v)
+    ? (v as ListenerKind)
+    : undefined;
+}
+
+function normalizeMaxAge(v: unknown): number | undefined {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
 }
 
 const PLATFORMS: Platform[] = [
@@ -78,6 +91,11 @@ export function makeListener(body: any): Listener {
     name: String(body?.name || "Untitled listener").slice(0, 140),
     subject: String(body?.subject || "").slice(0, 200),
     mode: normalizeMode(body?.mode),
+    kind: normalizeKind(body?.kind),
+    context: body?.context
+      ? String(body.context).slice(0, 280)
+      : undefined,
+    maxAgeDays: normalizeMaxAge(body?.maxAgeDays),
     keywords: normalizeKeywords(body?.keywords),
     sources: normalizeSources(body?.sources),
     createdAt: now,
@@ -92,6 +110,17 @@ export function applyEdit(existing: Listener, body: any): Listener {
     name: String(body?.name ?? existing.name).slice(0, 140),
     subject: String(body?.subject ?? existing.subject).slice(0, 200),
     mode: body?.mode ? normalizeMode(body.mode) : existing.mode ?? "news",
+    kind: body?.kind !== undefined ? normalizeKind(body.kind) : existing.kind,
+    context:
+      body?.context !== undefined
+        ? body.context
+          ? String(body.context).slice(0, 280)
+          : undefined
+        : existing.context,
+    maxAgeDays:
+      body?.maxAgeDays !== undefined
+        ? normalizeMaxAge(body.maxAgeDays)
+        : existing.maxAgeDays,
     keywords: body?.keywords
       ? normalizeKeywords(body.keywords)
       : existing.keywords,

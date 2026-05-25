@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ListenerForm, { type ListenerFormValue } from "@/components/ListenerForm";
+import { useState } from "react";
+import NewsQuickStart, {
+  type QuickStartResult,
+} from "@/components/NewsQuickStart";
+import VideoWizard, { type WizardResult } from "@/components/VideoWizard";
 
 export default function NewListenerPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"news" | "video">("video");
 
-  async function create(value: ListenerFormValue) {
+  async function create(value: QuickStartResult | WizardResult) {
     const res = await fetch("/api/listeners", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -29,7 +34,39 @@ export default function NewListenerPage() {
           ← All listeners
         </Link>
       </div>
-      <ListenerForm submitLabel="Save listener" onSubmit={create} />
+
+      <div
+        className="row"
+        style={{ gap: 8, marginBottom: 18, flexWrap: "wrap" }}
+      >
+        <button
+          type="button"
+          className={`btn ${mode === "video" ? "btn-primary" : ""}`}
+          onClick={() => setMode("video")}
+          title="Videos of people talking about your subject"
+        >
+          🎥 Video
+        </button>
+        <button
+          type="button"
+          className={`btn ${mode === "news" ? "btn-primary" : ""}`}
+          onClick={() => setMode("news")}
+          title="Articles, social posts, broad news coverage"
+        >
+          📰 News
+        </button>
+        <span className="faint" style={{ fontSize: 12, marginLeft: 6 }}>
+          {mode === "video"
+            ? "Find clips of people talking about (or being) your subject."
+            : "Broad text + social coverage of a topic."}
+        </span>
+      </div>
+
+      {mode === "video" ? (
+        <VideoWizard onSubmit={create} />
+      ) : (
+        <NewsQuickStart onSubmit={create} />
+      )}
     </div>
   );
 }
