@@ -47,6 +47,63 @@ const PLATFORM_LABEL: Record<string, string> = {
   apify: "Apify",
 };
 
+// ── categorize each item for the filter chips ───────────────────────
+// More useful than raw platform — distinguishes "News clips" (videos from
+// CNN/Fox/MSNBC etc.) from regular YouTube content, even though both
+// are platform="youtube".
+const CATEGORY_ORDER = [
+  "YouTube",
+  "News clips",
+  "TikTok",
+  "Instagram",
+  "X",
+  "Facebook",
+  "Threads",
+  "News articles",
+  "Reddit",
+  "Bluesky",
+  "Mastodon",
+  "Other",
+];
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  "YouTube": "🎥",
+  "News clips": "📺",
+  "TikTok": "🎵",
+  "Instagram": "📸",
+  "X": "🐦",
+  "Facebook": "📘",
+  "Threads": "🧵",
+  "News articles": "📰",
+  "Reddit": "💬",
+  "Bluesky": "🦋",
+  "Mastodon": "🦣",
+  "Other": "•",
+};
+
+function categoryOf(item: CandidateItem): string {
+  // News clips = YouTube videos from the curated news-channel feeds.
+  // Autofill ids them with a "news-" prefix on the source.
+  if (item.sourceId?.startsWith("news-")) return "News clips";
+  switch (item.platform) {
+    case "youtube": return "YouTube";
+    case "tiktok": return "TikTok";
+    case "instagram": return "Instagram";
+    case "x":
+    case "twitter": return "X";
+    case "facebook": return "Facebook";
+    case "threads": return "Threads";
+    case "reddit": return "Reddit";
+    case "bluesky": return "Bluesky";
+    case "mastodon": return "Mastodon";
+    case "rss":
+    case "atom":
+    case "json":
+    case "brave": return "News articles";
+  }
+  return "Other";
+}
+
 // ── comments (YouTube only, lazy) ────────────────────────────────────
 interface CommentRow {
   author: string;
@@ -404,16 +461,56 @@ function downloadCsv(items: CandidateItem[]) {
 // ── shell ────────────────────────────────────────────────────────────
 export default function ScanResults({ result }: { result: ScanResult | null }) {
   const [filter, setFilter] = useState("");
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const allRanked = result?.ranked ?? [];
+
+  // Count every category present in the unfiltered results — drives
+  // the chip row even after some chips are toggled off.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const it of allRanked) {
+      const c = categoryOf(it);
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    return counts;
+  }, [allRanked]);
+
+  // Sort categories by our canonical order; unknown categories go last.
+  const orderedCategories = useMemo(() => {
+    return Array.from(categoryCounts.keys()).sort((a, b) => {
+      const ai = CATEGORY_ORDER.indexOf(a);
+      const bi = CATEGORY_ORDER.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+  }, [categoryCounts]);
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return allRanked;
     return allRanked.filter((it) => {
+      if (hidden.has(categoryOf(it))) return false;
+      if (!q) return true;
       const hay = `${it.title} ${it.summary ?? ""} ${it.source} ${it.creator ?? ""} ${it.matchedTerms.join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRanked, filter]);
+  }, [allRanked, filter, hidden]);
+
+  function toggleCategory(c: string) {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
+      return next;
+    });
+  }
+  function showAll() {
+    setHidden(new Set());
+  }
+  function onlyShow(c: string) {
+    const next = new Set<string>();
+    for (const cat of orderedCategories) if (cat !== c) next.add(cat);
+    setHidden(next);
+  }
 
   if (!result) {
     return (
@@ -427,13 +524,14 @@ export default function ScanResults({ result }: { result: ScanResult | null }) {
   }
 
   const { errors, ranAt } = result;
+  const anyHidden = hidden.size > 0;
 
   return (
     <div>
       <div className="spread" style={{ marginBottom: 14, gap: 12 }}>
         <span className="faint" title={SCORE_TOOLTIP}>
           {filtered.length}
-          {filter && filtered.length !== allRanked.length
+          {filtered.length !== allRanked.length
             ? ` of ${allRanked.length}`
             : ""}{" "}
           result{filtered.length === 1 ? "" : "s"} · ranked by viral
@@ -460,6 +558,68 @@ export default function ScanResults({ result }: { result: ScanResult | null }) {
           ) : null}
         </div>
       </div>
+
+      {orderedCategories.length > 1 ? (
+        <div
+          className="row"
+          style={{
+            gap: 6,
+            flexWrap: "wrap",
+            marginBottom: 14,
+            alignItems: "center",
+          }}
+        >
+          {orderedCategories.map((c) => {
+            const off = hidden.has(c);
+            const count = categoryCounts.get(c) ?? 0;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => toggleCategory(c)}
+                onDoubleClick={() => onlyShow(c)}
+                title={off ? `Show ${c}` : `Hide ${c} (double-click: only ${c})`}
+                className="chip"
+                style={{
+                  cursor: "pointer",
+                  background: off
+                    ? "transparent"
+                    : "rgba(61, 215, 198, 0.12)",
+                  color: off
+                    ? "var(--text-faint)"
+                    : "var(--accent)",
+                  border: `1px solid ${off ? "var(--border-soft)" : "rgba(61, 215, 198, 0.4)"}`,
+                  textDecoration: off ? "line-through" : "none",
+                  padding: "3px 9px",
+                  fontSize: 12,
+                  borderRadius: 999,
+                }}
+              >
+                {CATEGORY_EMOJI[c] || "•"} {c} · {count}
+              </button>
+            );
+          })}
+          {anyHidden ? (
+            <button
+              type="button"
+              onClick={showAll}
+              className="chip"
+              style={{
+                cursor: "pointer",
+                background: "transparent",
+                border: "1px dashed var(--border-soft)",
+                padding: "3px 9px",
+                fontSize: 12,
+                borderRadius: 999,
+                color: "var(--text-dim)",
+              }}
+              title="Show all categories"
+            >
+              show all
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {errors.length > 0 ? (
         <details style={{ marginBottom: 14 }}>
