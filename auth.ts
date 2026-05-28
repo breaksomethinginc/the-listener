@@ -39,6 +39,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
   ],
+  // Vercel sits behind an edge proxy. Without this, Auth.js v5 refuses
+  // forwarded host headers and shows an "UntrustedHost" / "proxy
+  // detected" style error. Safe to enable for any deployment behind
+  // a trusted reverse proxy.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
