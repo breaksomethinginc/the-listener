@@ -2,8 +2,15 @@
 // One Listener in, one ranked ScanResult out.
 
 import { loadConfig, type ListenerConfig } from "./config";
+import { isNewsDomain } from "./newsDomains";
 import { fetchAllSources } from "./sources";
-import type { CandidateItem, KeywordBundle, Listener, ScanResult } from "./types";
+import type {
+  CandidateItem,
+  KeywordBundle,
+  Listener,
+  ListenerMode,
+  ScanResult,
+} from "./types";
 
 interface Scored {
   /** Relevance score — used as the filter (must be > 0 to display). */
@@ -163,11 +170,16 @@ export function rankCandidates(
   kw: KeywordBundle,
   trustById: Record<string, number>,
   maxAgeDays?: number,
+  mode?: ListenerMode,
 ): CandidateItem[] {
   const inWindow = applyAgeFilter(items, maxAgeDays);
   const scored: CandidateItem[] = [];
+  // Voices mode: drop anything that links to a known news outlet,
+  // even if it came in via a Reddit/Bluesky/Mastodon link post.
+  const dropNewsDomains = mode === "voices";
 
   for (const it of inWindow) {
+    if (dropNewsDomains && isNewsDomain(it.url)) continue;
     const { relevance, matched } = scoreItem(it, kw);
     if (relevance <= 0) continue;
     const trust =
@@ -225,6 +237,7 @@ export async function runScan(
     listener.keywords,
     trustById,
     listener.maxAgeDays,
+    listener.mode,
   );
 
   return {

@@ -189,6 +189,20 @@ function CommentList({ videoId }: { videoId: string }) {
   );
 }
 
+// ── url normalization ────────────────────────────────────────────────
+// Some scrapers return URLs without a protocol (`tiktok.com/@user/...`)
+// or as relative paths. A plain href="" anchor renders fine but does
+// nothing on click. This makes "clicking the link" always behave.
+function safeUrl(u: string | undefined | null): string | undefined {
+  if (!u) return undefined;
+  const t = String(u).trim();
+  if (!t) return undefined;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^\/\//.test(t)) return "https:" + t;
+  if (/^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(t)) return "https://" + t;
+  return undefined;
+}
+
 // ── viral score tiering ──────────────────────────────────────────────
 function viralTier(score: number): { cls: string; emoji: string; label: string } {
   if (score >= 70) return { cls: "hot", emoji: "🔥", label: "viral" };
@@ -209,12 +223,21 @@ function ResultRow({ item }: { item: CandidateItem }) {
     item.platform && PLATFORM_LABEL[item.platform]
       ? PLATFORM_LABEL[item.platform]
       : undefined;
+  const postUrl = safeUrl(item.url);
+  const creatorUrl = safeUrl(item.creatorUrl);
   const canPlay =
-    item.platform === "youtube" ||
-    item.platform === "tiktok" ||
-    item.platform === "instagram" ||
-    item.platform === "facebook" ||
-    /youtube\.com|youtu\.be/.test(item.url || "");
+    !!postUrl &&
+    (item.platform === "youtube" ||
+      item.platform === "tiktok" ||
+      item.platform === "instagram" ||
+      item.platform === "facebook" ||
+      /youtube\.com|youtu\.be/.test(item.url || ""));
+
+  // Click the thumbnail: play inline if we can, otherwise open the post.
+  function onThumbClick() {
+    if (canPlay) setPlaying((p) => !p);
+    else if (postUrl) window.open(postUrl, "_blank", "noopener,noreferrer");
+  }
 
   const views = fmtNum(item.views);
   const likes = fmtNum(item.likes);
@@ -246,8 +269,9 @@ function ResultRow({ item }: { item: CandidateItem }) {
       {item.imageUrl ? (
         <button
           type="button"
-          onClick={() => canPlay && setPlaying((p) => !p)}
-          title={canPlay ? "Play inline" : "Open in new tab"}
+          onClick={onThumbClick}
+          title={canPlay ? "Play inline" : postUrl ? "Open in new tab" : "No link available"}
+          disabled={!canPlay && !postUrl}
           style={{
             flex: "0 0 auto",
             position: "relative",
@@ -310,10 +334,63 @@ function ResultRow({ item }: { item: CandidateItem }) {
 
       <div className="result-body">
         <p className="result-title">
-          <a href={item.url} target="_blank" rel="noreferrer">
-            {item.title}
-          </a>
+          {postUrl ? (
+            <a href={postUrl} target="_blank" rel="noreferrer">
+              {item.title}
+            </a>
+          ) : (
+            <span title="No URL on this item">{item.title}</span>
+          )}
         </p>
+
+        {/* Creator pill — prominent, separate from the meta line. The
+            primary outreach affordance: who said this, click to go
+            straight to their profile. */}
+        {item.creator || creatorUrl ? (
+          <div style={{ margin: "4px 0 8px" }}>
+            {creatorUrl ? (
+              <a
+                href={creatorUrl}
+                target="_blank"
+                rel="noreferrer"
+                title="Open creator profile in a new tab"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  background: "rgba(61, 215, 198, 0.12)",
+                  border: "1px solid rgba(61, 215, 198, 0.35)",
+                  color: "var(--accent)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                👤 {item.creator || "Profile"}
+                <span style={{ opacity: 0.7, fontWeight: 400 }}>↗</span>
+              </a>
+            ) : (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid var(--border-soft)",
+                  color: "var(--text-dim)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                👤 {item.creator}
+              </span>
+            )}
+          </div>
+        ) : null}
 
         {item.summary ? <p className="result-summary">{item.summary}</p> : null}
 
@@ -324,22 +401,7 @@ function ResultRow({ item }: { item: CandidateItem }) {
             </span>
           ) : null}
 
-          {item.creator ? (
-            item.creatorUrl ? (
-              <a
-                href={item.creatorUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="Open creator profile"
-              >
-                {item.creator}
-              </a>
-            ) : (
-              <span>{item.creator}</span>
-            )
-          ) : (
-            <span>{item.source}</span>
-          )}
+          <span>{item.source}</span>
 
           <span>·</span>
           <span>{timeAgo(item.publishedAt)}</span>
