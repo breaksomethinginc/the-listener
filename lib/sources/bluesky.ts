@@ -47,8 +47,15 @@ export async function fetchBluesky(
     .map((p: any) => {
       const record = p.record || {};
       const handle = p.author?.handle || "bsky";
+      const displayName = p.author?.displayName
+        ? String(p.author.displayName)
+        : undefined;
       const rkey = String(p.uri || "").split("/").pop() || "";
       const text = String(record.text || "");
+      const creator =
+        displayName && handle
+          ? `${displayName} (@${handle})`
+          : `@${handle}`;
       return toCandidate({
         title: stripHtml(text).slice(0, 180) || "(post)",
         url: `https://bsky.app/profile/${handle}/post/${rkey}`,
@@ -56,6 +63,11 @@ export async function fetchBluesky(
         summary: text.slice(0, 600),
         publishedAt: toIso(record.createdAt),
         source: `@${handle}`,
+        platform: "bluesky",
+        creator,
+        creatorUrl: `https://bsky.app/profile/${handle}`,
+        likes: typeof p.likeCount === "number" ? p.likeCount : undefined,
+        commentCount: typeof p.replyCount === "number" ? p.replyCount : undefined,
       });
     });
 }

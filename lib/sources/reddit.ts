@@ -43,6 +43,10 @@ export async function fetchReddit(
         typeof d.thumbnail === "string" && d.thumbnail.startsWith("http")
           ? d.thumbnail
           : undefined;
+      const author = d.author ? String(d.author) : undefined;
+      const subreddit = d.subreddit_name_prefixed
+        ? String(d.subreddit_name_prefixed)
+        : undefined;
       return toCandidate({
         title: String(d.title || "(untitled)"),
         url: permalink,
@@ -50,7 +54,16 @@ export async function fetchReddit(
         summary: stripHtml(String(d.selftext || "")).slice(0, 600),
         publishedAt: toIso(d.created_utc ? d.created_utc * 1000 : undefined),
         imageUrl: thumb,
-        source: String(d.subreddit_name_prefixed || source.label),
+        source: subreddit || source.label,
+        platform: "reddit",
+        creator: author ? `u/${author}` : subreddit,
+        creatorUrl: author
+          ? `https://www.reddit.com/user/${author}/`
+          : subreddit
+            ? `https://www.reddit.com/${subreddit}/`
+            : undefined,
+        likes: typeof d.score === "number" ? d.score : undefined,
+        commentCount: typeof d.num_comments === "number" ? d.num_comments : undefined,
       });
     });
 }

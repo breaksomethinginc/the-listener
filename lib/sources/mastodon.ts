@@ -40,7 +40,13 @@ function parseInput(raw: string): Parsed {
 
 function statusToCandidate(s: any, instance: string): CandidateItem {
   const text = stripHtml(String(s.content || ""));
-  const username = s.account?.acct ? `@${s.account.acct}` : "Mastodon";
+  const acct = s.account?.acct;
+  const displayName = s.account?.display_name;
+  const handle = acct ? `@${acct}` : undefined;
+  const creator =
+    displayName && handle
+      ? `${displayName} (${handle})`
+      : handle || displayName || "Mastodon";
   return toCandidate({
     title: text.slice(0, 180) || "(toot)",
     url: String(s.url || s.uri || ""),
@@ -48,7 +54,12 @@ function statusToCandidate(s: any, instance: string): CandidateItem {
     summary: text.slice(0, 600),
     publishedAt: toIso(s.created_at),
     imageUrl: s.media_attachments?.[0]?.preview_url,
-    source: `${username} (${instance})`,
+    source: `${handle || "Mastodon"} (${instance})`,
+    platform: "mastodon",
+    creator,
+    creatorUrl: s.account?.url ? String(s.account.url) : undefined,
+    likes: typeof s.favourites_count === "number" ? s.favourites_count : undefined,
+    commentCount: typeof s.replies_count === "number" ? s.replies_count : undefined,
   });
 }
 

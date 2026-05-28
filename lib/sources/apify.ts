@@ -134,23 +134,45 @@ export async function fetchApify(
       }
     }
 
-    const handle = str(
-      it,
-      "ownerUsername",
-      "authorMeta",
-      "author",
-      "username",
-      "userName",
-      "user",
-      "channelName",
-    );
-    // Some scrapers nest the username inside an object.
-    const nestedHandle =
-      typeof it.author === "object"
-        ? str(it.author, "username", "userName", "uniqueId", "name")
-        : undefined;
-    const creatorHandle = nestedHandle || handle;
-    const creatorDisplay = creatorHandle ? `@${creatorHandle.replace(/^@/, "")}` : undefined;
+    // Creator info — handle is the "@username" you'd DM; displayName
+    // is the human name shown publicly. Different scrapers put both
+    // at different places (sometimes top-level, sometimes nested in
+    // authorMeta / author / user / channel / owner). Walk both.
+    const handle =
+      str(
+        it,
+        "ownerUsername",
+        "username",
+        "userName",
+        "uniqueId",
+        "creatorUsername",
+        "pageName",
+      ) ||
+      // Nested object shapes used by major scrapers.
+      str(it.authorMeta, "name", "uniqueId", "username", "userName") || // TikTok
+      str(it.author, "username", "userName", "uniqueId", "name") || // X / Threads / TT alt
+      str(it.user, "username", "userName", "name") || // Facebook page
+      str(it.channel, "name", "username", "handle") || // YouTube
+      str(it.owner, "username", "userName", "name"); // IG alt
+
+    const displayName =
+      str(it, "ownerFullName", "authorName", "fullName", "name") ||
+      str(it.authorMeta, "nickName", "nickname", "displayName") || // TikTok
+      str(it.author, "name", "displayName", "fullName") ||
+      str(it.user, "name", "displayName") ||
+      str(it.channel, "title", "name") ||
+      str(it.owner, "fullName", "name");
+
+    const cleanHandle = handle ? handle.replace(/^@+/, "") : undefined;
+    // Render order: "Display Name (@handle)" when we have both,
+    // "@handle" when only handle, "Display Name" when only name.
+    const creatorDisplay =
+      displayName && cleanHandle
+        ? `${displayName} (@${cleanHandle})`
+        : cleanHandle
+          ? `@${cleanHandle}`
+          : displayName || undefined;
+    const creatorHandle = cleanHandle;
 
     return toCandidate({
       title: stripHtml(text).slice(0, 180) || "(item)",
@@ -170,7 +192,7 @@ export async function fetchApify(
       platform,
       videoId: extractVideoId(platform, link),
       creator: creatorDisplay,
-      creatorUrl: profileUrl(platform, creatorHandle || ""),
+      creatorUrl: creatorHandle ? profileUrl(platform, creatorHandle) : undefined,
       views: num(
         it,
         "playCount",
