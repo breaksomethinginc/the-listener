@@ -191,15 +191,20 @@ function CommentList({ videoId }: { videoId: string }) {
 
 // ── url normalization ────────────────────────────────────────────────
 // Some scrapers return URLs without a protocol (`tiktok.com/@user/...`)
-// or as relative paths. A plain href="" anchor renders fine but does
-// nothing on click. This makes "clicking the link" always behave.
+// or as bare strings. A plain href="" anchor renders fine but does
+// nothing on click. This makes "click the card" always behave.
 function safeUrl(u: string | undefined | null): string | undefined {
   if (!u) return undefined;
   const t = String(u).trim();
   if (!t) return undefined;
+  // Already absolute.
   if (/^https?:\/\//i.test(t)) return t;
+  // Protocol-relative.
   if (/^\/\//.test(t)) return "https:" + t;
-  if (/^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(t)) return "https://" + t;
+  // Anything containing a dot in the first segment — treat as a domain.
+  // (More permissive than the strict domain regex; better to over-link
+  //  than to leave the user with a dead card.)
+  if (/^[^\s/?#]+\.[^\s/?#]/.test(t)) return "https://" + t;
   return undefined;
 }
 
@@ -234,9 +239,22 @@ function ResultRow({ item }: { item: CandidateItem }) {
       /youtube\.com|youtu\.be/.test(item.url || ""));
 
   // Click the thumbnail: play inline if we can, otherwise open the post.
-  function onThumbClick() {
+  function onThumbClick(e: React.MouseEvent) {
+    e.stopPropagation();
     if (canPlay) setPlaying((p) => !p);
     else if (postUrl) window.open(postUrl, "_blank", "noopener,noreferrer");
+  }
+
+  // Click anywhere else on the card opens the post (creator URL is a
+  // fallback for items where the post URL is genuinely missing).
+  function onCardClick(e: React.MouseEvent) {
+    // If the click landed on an interactive child (link, button, input),
+    // let that handler run and don't open the card-level URL.
+    const target = e.target as HTMLElement;
+    if (target.closest("a, button, input, textarea, select, details, summary"))
+      return;
+    const dest = postUrl || creatorUrl;
+    if (dest) window.open(dest, "_blank", "noopener,noreferrer");
   }
 
   const views = fmtNum(item.views);
@@ -249,8 +267,23 @@ function ResultRow({ item }: { item: CandidateItem }) {
     item.url?.match(/[?&]v=([\w-]{6,})/)?.[1] ||
     item.url?.match(/youtu\.be\/([\w-]{6,})/)?.[1];
 
+  const cardClickable = !!(postUrl || creatorUrl);
+
   return (
-    <div className="result">
+    <div
+      className="result result-clickable"
+      onClick={cardClickable ? onCardClick : undefined}
+      role={cardClickable ? "link" : undefined}
+      tabIndex={cardClickable ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (cardClickable && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          const dest = postUrl || creatorUrl;
+          if (dest) window.open(dest, "_blank", "noopener,noreferrer");
+        }
+      }}
+      style={{ cursor: cardClickable ? "pointer" : "default" }}
+    >
       <div
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
         title={SCORE_TOOLTIP}

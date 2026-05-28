@@ -106,10 +106,33 @@ export async function fetchApify(
     const text = String(
       it.text || it.title || it.caption || it.content || it.fullText || "",
     );
-    const link = String(
-      it.url || it.link || it.postUrl || it.tweetUrl || it.permalink || "",
+    let link = String(
+      it.url ||
+        it.link ||
+        it.postUrl ||
+        it.tweetUrl ||
+        it.permalink ||
+        it.webVideoUrl ||  // TikTok (clockworks/tiktok-scraper)
+        it.videoUrl ||
+        it.shareUrl ||
+        it.pageUrl ||
+        "",
     );
     const platform = guessPlatform(it, fallbackPlatform);
+    // Reconstruct URLs from platform-specific id fields when no full
+    // URL came through.
+    if (!link) {
+      if (platform === "instagram" && (it.shortCode || it.shortcode || it.code)) {
+        link = `https://www.instagram.com/p/${it.shortCode || it.shortcode || it.code}/`;
+      } else if (platform === "tiktok" && it.id && (it.authorMeta?.name || it.author?.uniqueId)) {
+        const user = String(it.authorMeta?.name || it.author?.uniqueId).replace(/^@/, "");
+        link = `https://www.tiktok.com/@${user}/video/${it.id}`;
+      } else if (platform === "youtube" && it.id) {
+        link = `https://www.youtube.com/watch?v=${it.id}`;
+      } else if (platform === "threads" && it.code) {
+        link = `https://www.threads.net/t/${it.code}`;
+      }
+    }
 
     const handle = str(
       it,

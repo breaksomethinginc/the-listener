@@ -298,8 +298,24 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
   gap: 14px;
   padding: 16px 0;
   border-bottom: 1px solid var(--border-soft);
+  transition: background 0.12s ease;
 }
 .result:last-child { border-bottom: none; }
+/* Whole row is clickable — give it a subtle hover so users know. */
+.result-clickable {
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 6px;
+}
+.result-clickable:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.result-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: rgba(61, 215, 198, 0.04);
+}
 .result-body { flex: 1; min-width: 0; }
 .result-title {
   font-size: 15px;
