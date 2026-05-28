@@ -96,7 +96,7 @@ export interface ScanResult {
   ranked: CandidateItem[];
 }
 
-export type ListenerMode = "news" | "video";
+export type ListenerMode = "news" | "video" | "voices";
 export type ListenerKind = "person" | "organization" | "event" | "topic";
 
 /** A saved listener — the thing the user creates, saves, and re-runs. */

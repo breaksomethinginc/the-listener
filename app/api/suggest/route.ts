@@ -6,8 +6,15 @@
 //                                      and returns clean keywords +
 //                                      sources tuned to the intent.
 
-import { buildListenerFromIntent } from "@/lib/autofill";
-import type { AutofillInput, AvailableKeys } from "@/lib/autofill";
+import {
+  buildListenerFromIntent,
+  buildVoicesFromIntent,
+} from "@/lib/autofill";
+import type {
+  AutofillInput,
+  AvailableKeys,
+  VoicesInput,
+} from "@/lib/autofill";
 import { suggestKeywords, suggestSources } from "@/lib/keywords";
 import type { ListenerMode } from "@/lib/types";
 
@@ -39,16 +46,37 @@ export async function GET(req: Request) {
   });
 }
 
-/** Wizard-driven: full intent → tuned keywords + sources. */
+/**
+ * Wizard-driven: full intent → tuned keywords + sources.
+ *
+ *   POST { kind, name, coverage, ... }  → video listener autofill
+ *   POST { mode: "voices", name, ... }  → voices listener autofill
+ */
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null)) as AutofillInput | null;
-  if (!body || !body.name || !body.kind || !body.coverage) {
+  const body = (await req.json().catch(() => null)) as
+    | (AutofillInput & { mode?: string })
+    | (VoicesInput & { mode: "voices" })
+    | null;
+  if (!body || !(body as any).name) {
+    return Response.json(
+      { error: "Provide { name, ... } in the body" },
+      { status: 400 },
+    );
+  }
+  const keys = readKeys();
+
+  if ((body as any).mode === "voices") {
+    const out = buildVoicesFromIntent(body as VoicesInput, keys);
+    return Response.json({ ...out, mode: "voices", availableKeys: keys });
+  }
+
+  const v = body as AutofillInput;
+  if (!v.kind || !v.coverage) {
     return Response.json(
       { error: "Provide { kind, name, coverage } in the body" },
       { status: 400 },
     );
   }
-  const keys = readKeys();
-  const out = buildListenerFromIntent(body, keys);
-  return Response.json({ ...out, availableKeys: keys });
+  const out = buildListenerFromIntent(v, keys);
+  return Response.json({ ...out, mode: "video", availableKeys: keys });
 }

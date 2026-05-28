@@ -11,7 +11,9 @@ import type {
 } from "./types";
 
 function normalizeMode(v: unknown): ListenerMode {
-  return v === "video" ? "video" : "news";
+  if (v === "video") return "video";
+  if (v === "voices") return "voices";
+  return "news";
 }
 
 const KINDS: ListenerKind[] = ["person", "organization", "event", "topic"];

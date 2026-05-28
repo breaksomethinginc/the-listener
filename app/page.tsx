@@ -8,11 +8,17 @@ interface ListenerCard {
   id: string;
   name: string;
   subject: string;
-  mode?: "news" | "video";
+  mode?: "news" | "video" | "voices";
   sources: { enabled: boolean }[];
   updatedAt: string;
   lastRunAt?: string;
   summary: { ranked: number; errors: number; ranAt: string } | null;
+}
+
+function modeBadge(mode: ListenerCard["mode"]) {
+  if (mode === "video") return { emoji: "🎥", title: "Video listener" };
+  if (mode === "voices") return { emoji: "🗣", title: "Voices listener" };
+  return { emoji: "📰", title: "News listener" };
 }
 
 export default function Home() {
@@ -123,10 +129,10 @@ export default function Home() {
               <div className="spread">
                 <p className="card-title">
                   <span
-                    title={l.mode === "video" ? "Video listener" : "News listener"}
+                    title={modeBadge(l.mode).title}
                     style={{ marginRight: 6 }}
                   >
-                    {l.mode === "video" ? "🎥" : "📰"}
+                    {modeBadge(l.mode).emoji}
                   </span>
                   {l.name}
                 </p>

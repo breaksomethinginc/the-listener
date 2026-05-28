@@ -7,12 +7,19 @@ import NewsQuickStart, {
   type QuickStartResult,
 } from "@/components/NewsQuickStart";
 import VideoWizard, { type WizardResult } from "@/components/VideoWizard";
+import VoicesWizard, {
+  type VoicesWizardResult,
+} from "@/components/VoicesWizard";
+
+type Mode = "news" | "video" | "voices";
 
 export default function NewListenerPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"news" | "video">("video");
+  const [mode, setMode] = useState<Mode>("video");
 
-  async function create(value: QuickStartResult | WizardResult) {
+  async function create(
+    value: QuickStartResult | WizardResult | VoicesWizardResult,
+  ) {
     const res = await fetch("/api/listeners", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -22,6 +29,13 @@ export default function NewListenerPage() {
     if (!res.ok) throw new Error(data.error || "Could not save listener");
     router.push(`/listeners/${data.listener.id}`);
   }
+
+  const tagline =
+    mode === "video"
+      ? "Clips OF and ABOUT your subject across the web."
+      : mode === "voices"
+        ? "Just real people. No press, no outlets, no statements."
+        : "Broad text + social coverage of a topic.";
 
   return (
     <div>
@@ -43,9 +57,17 @@ export default function NewListenerPage() {
           type="button"
           className={`btn ${mode === "video" ? "btn-primary" : ""}`}
           onClick={() => setMode("video")}
-          title="Videos of people talking about your subject"
+          title="Videos of (and about) your subject — news clips, creator posts, search"
         >
           🎥 Video
+        </button>
+        <button
+          type="button"
+          className={`btn ${mode === "voices" ? "btn-primary" : ""}`}
+          onClick={() => setMode("voices")}
+          title="Real people on TikTok / IG / Threads / FB. No news outlets."
+        >
+          🗣 Voices
         </button>
         <button
           type="button"
@@ -56,14 +78,14 @@ export default function NewListenerPage() {
           📰 News
         </button>
         <span className="faint" style={{ fontSize: 12, marginLeft: 6 }}>
-          {mode === "video"
-            ? "Find clips of people talking about (or being) your subject."
-            : "Broad text + social coverage of a topic."}
+          {tagline}
         </span>
       </div>
 
       {mode === "video" ? (
         <VideoWizard onSubmit={create} />
+      ) : mode === "voices" ? (
+        <VoicesWizard onSubmit={create} />
       ) : (
         <NewsQuickStart onSubmit={create} />
       )}

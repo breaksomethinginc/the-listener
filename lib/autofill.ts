@@ -68,6 +68,15 @@ export interface AutofillOutput {
   sources: FeedSource[];
 }
 
+/** Wizard input for the Voices mode (real-people-only). */
+export interface VoicesInput {
+  name: string;
+  context?: string;
+  maxAgeDays?: number;
+  /** Whether to include Reddit + Bluesky discussion alongside video platforms. */
+  includeDiscussion?: boolean;
+}
+
 // ── helpers ───────────────────────────────────────────────────────────
 
 function clean(s: string): string {
@@ -319,6 +328,156 @@ export function buildListenerFromIntent(
 
   return {
     keywords: buildKeywords(input),
+    sources,
+  };
+}
+
+// ── Voices mode ───────────────────────────────────────────────────────
+// Real people talking about the subject — TikTok / Instagram / Threads /
+// Facebook / Reddit hashtag + keyword searches only. No news channels,
+// no RSS, no Brave, no big media accounts surfaced by official handles.
+
+/** Phrases that boost authentic UGC commentary. */
+const VOICES_BOOST = [
+  "reaction",
+  "response",
+  "opinion",
+  "POV",
+  "real talk",
+  "honestly",
+  "my take",
+  "thoughts",
+  "story time",
+];
+
+/** Phrases that signal institutional / press content — vetoed in Voices. */
+const VOICES_VETO = [
+  "press release",
+  "official statement",
+  "spokesperson said",
+  "according to a statement",
+];
+
+function buildVoicesKeywords(input: VoicesInput): KeywordBundle {
+  const name = clean(input.name);
+  return {
+    any: [name],
+    boost: [...VOICES_BOOST, ...contextTerms(input.context)],
+    veto: [...VOICES_VETO],
+  };
+}
+
+export function buildVoicesFromIntent(
+  input: VoicesInput,
+  keys: AvailableKeys,
+): AutofillOutput {
+  const name = clean(input.name);
+  const tag = hashtag(name);
+  const sources: FeedSource[] = [];
+
+  if (keys.apify) {
+    // ── TikTok ─────────────────────────────────────────────────────
+    sources.push({
+      id: id("tt-tag", tag),
+      label: `TikTok #${tag}`,
+      url: `#${tag}`,
+      platform: "tiktok",
+      enabled: true,
+      trustWeight: 1,
+    });
+    sources.push({
+      id: id("tt-search", name),
+      label: `TikTok search — ${name}`,
+      url: name,
+      platform: "tiktok",
+      enabled: true,
+      trustWeight: 0.9,
+    });
+
+    // ── Instagram ──────────────────────────────────────────────────
+    sources.push({
+      id: id("ig-tag", tag),
+      label: `Instagram #${tag}`,
+      url: `#${tag}`,
+      platform: "instagram",
+      enabled: true,
+      trustWeight: 1,
+    });
+
+    // ── Threads ────────────────────────────────────────────────────
+    sources.push({
+      id: id("threads-search", name),
+      label: `Threads search — ${name}`,
+      url: name,
+      platform: "threads",
+      enabled: true,
+      trustWeight: 0.9,
+    });
+
+    // ── Facebook ───────────────────────────────────────────────────
+    // No public search — leave a slot the user can wire up.
+    sources.push({
+      id: id("fb-page", name),
+      label: `Facebook page — add a page URL`,
+      url: "",
+      platform: "facebook",
+      enabled: false,
+      trustWeight: 0.7,
+    });
+  } else {
+    // Without Apify the video platforms can't be searched. Add a
+    // disabled stub so the user knows what's missing.
+    sources.push({
+      id: id("tt-tag", tag),
+      label: `TikTok #${tag}  (needs APIFY_TOKEN)`,
+      url: `#${tag}`,
+      platform: "tiktok",
+      enabled: false,
+      trustWeight: 1,
+    });
+    sources.push({
+      id: id("ig-tag", tag),
+      label: `Instagram #${tag}  (needs APIFY_TOKEN)`,
+      url: `#${tag}`,
+      platform: "instagram",
+      enabled: false,
+      trustWeight: 1,
+    });
+  }
+
+  // ── Reddit + Bluesky + Mastodon ──────────────────────────────────
+  // Discussion is opt-in. These are people talking, not videos, but
+  // they're useful context for outreach / sentiment.
+  if (input.includeDiscussion) {
+    const enc = encodeURIComponent(name);
+    sources.push({
+      id: id("reddit", name),
+      label: `Reddit search — ${name}`,
+      url: `https://www.reddit.com/search.json?q=${enc}&sort=new&limit=25`,
+      platform: "reddit",
+      enabled: true,
+      trustWeight: 0.8,
+    });
+    sources.push({
+      id: id("bsky", name),
+      label: `Bluesky search — ${name}`,
+      url: name,
+      platform: "bluesky",
+      enabled: true,
+      trustWeight: 0.7,
+    });
+    sources.push({
+      id: id("masto", tag),
+      label: `Mastodon #${tag}`,
+      url: `#${tag}`,
+      platform: "mastodon",
+      enabled: true,
+      trustWeight: 0.6,
+    });
+  }
+
+  return {
+    keywords: buildVoicesKeywords(input),
     sources,
   };
 }

@@ -172,14 +172,24 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
               type="button"
               className={`btn btn-sm ${mode === "video" ? "btn-primary" : ""}`}
               onClick={() => setMode("video")}
-              title="Videos of people talking about your subject across YouTube, TikTok, Instagram, Facebook"
+              title="Videos of (and about) your subject across YouTube, TikTok, Instagram, Facebook"
             >
               🎥 Video
             </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${mode === "voices" ? "btn-primary" : ""}`}
+              onClick={() => setMode("voices")}
+              title="Real people only — TikTok / IG / Threads / FB"
+            >
+              🗣 Voices
+            </button>
             <span className="faint" style={{ fontSize: 12 }}>
               {mode === "video"
-                ? "Auto-fill will pull from YouTube, TikTok, Instagram, Facebook."
-                : "Auto-fill will pull from Google News, Bing News, Reddit, Bluesky, Mastodon."}
+                ? "Pulls YouTube, TikTok, Instagram, Facebook + news channels."
+                : mode === "voices"
+                  ? "Pulls TikTok, Instagram, Threads, Facebook — no outlets."
+                  : "Pulls Google News, Bing News, Reddit, Bluesky, Mastodon."}
             </span>
           </div>
         </div>
