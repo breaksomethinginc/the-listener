@@ -98,12 +98,17 @@ export interface ScanResult {
 
 export type ListenerMode = "news" | "video" | "voices";
 export type ListenerKind = "person" | "organization" | "event" | "topic";
+export type ListenerVisibility = "private" | "shared";
 
 /** A saved listener — the thing the user creates, saves, and re-runs. */
 export interface Listener {
   id: string;
   name: string;
   subject: string;
+  /** Email of the user who created it. Undefined = legacy/pre-OAuth listener. */
+  ownerId?: string;
+  /** Who can see it. Defaults to "shared" for legacy listeners, "private" for new ones. */
+  visibility?: ListenerVisibility;
   /** "news" (default) or "video". Drives autofill + UI badge; runtime is identical. */
   mode: ListenerMode;
   /** What the subject is — used by the wizard for smarter source selection. */

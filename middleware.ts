@@ -1,54 +1,41 @@
-// HTTP Basic Auth — runs at the edge in front of every request.
+// Auth middleware — gate every page on a NextAuth session.
 //
-// Enable by setting BOTH env vars in Vercel:
-//   BASIC_AUTH_USER       — the username
-//   BASIC_AUTH_PASSWORD   — the password
+// Logged-out users hitting any protected route are redirected to /login.
+// /api/auth/* (sign-in flow) and /api/cron (CRON_SECRET-gated) are
+// always exempt.
 //
-// If either is missing, the middleware is a no-op (open access). That
-// keeps local `npm run dev` frictionless and lets you toggle the gate
-// on/off in Vercel without touching code.
-//
-// /api/cron is always exempt — Vercel Cron uses its own CRON_SECRET.
+// Sign-in policy lives in auth.ts — only emails on the ALLOWED_EMAILS
+// list can complete the Google OAuth flow.
 
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
-export function middleware(req: NextRequest) {
-  const user = process.env.BASIC_AUTH_USER;
-  const pass = process.env.BASIC_AUTH_PASSWORD;
+const PUBLIC_PATH_PREFIXES = [
+  "/login",
+  "/api/auth",
+  "/api/cron",
+  "/favicon",
+];
 
-  // No credentials configured → app is open. This is by design so the
-  // app keeps working before you set the env vars.
-  if (!user || !pass) return NextResponse.next();
-
-  // The cron endpoint authenticates itself via CRON_SECRET.
-  if (req.nextUrl.pathname.startsWith("/api/cron")) {
-    return NextResponse.next();
-  }
-
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Basic ")) {
-    try {
-      const decoded = atob(auth.slice(6));
-      const idx = decoded.indexOf(":");
-      const u = idx >= 0 ? decoded.slice(0, idx) : decoded;
-      const p = idx >= 0 ? decoded.slice(idx + 1) : "";
-      if (u === user && p === pass) {
-        return NextResponse.next();
-      }
-    } catch {
-      // Fall through to 401.
-    }
-  }
-
-  return new NextResponse("Authentication required", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="The Listener", charset="UTF-8"',
-    },
-  });
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p));
 }
+
+export default auth((req) => {
+  const pathname = req.nextUrl.pathname;
+  if (isPublicPath(pathname)) return NextResponse.next();
+
+  // `auth` injects req.auth — the current session, or null when signed out.
+  if (!req.auth) {
+    const loginUrl = new URL("/login", req.nextUrl);
+    if (pathname !== "/") loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+});
 
 // Run on every route except Next's static-asset paths.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|favicon.svg).*)"],
 };

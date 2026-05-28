@@ -7,8 +7,15 @@ import type {
   Listener,
   ListenerKind,
   ListenerMode,
+  ListenerVisibility,
   Platform,
 } from "./types";
+
+function normalizeVisibility(v: unknown): ListenerVisibility | undefined {
+  if (v === "private") return "private";
+  if (v === "shared") return "shared";
+  return undefined;
+}
 
 function normalizeMode(v: unknown): ListenerMode {
   if (v === "video") return "video";
@@ -86,12 +93,14 @@ export function normalizeSources(v: any): FeedSource[] {
 }
 
 /** Build a fresh Listener from a raw request body. */
-export function makeListener(body: any): Listener {
+export function makeListener(body: any, ownerId?: string): Listener {
   const now = new Date().toISOString();
   return {
     id: genId(),
     name: String(body?.name || "Untitled listener").slice(0, 140),
     subject: String(body?.subject || "").slice(0, 200),
+    ownerId: ownerId || body?.ownerId || undefined,
+    visibility: normalizeVisibility(body?.visibility) ?? "private",
     mode: normalizeMode(body?.mode),
     kind: normalizeKind(body?.kind),
     context: body?.context
@@ -111,6 +120,13 @@ export function applyEdit(existing: Listener, body: any): Listener {
     ...existing,
     name: String(body?.name ?? existing.name).slice(0, 140),
     subject: String(body?.subject ?? existing.subject).slice(0, 200),
+    // ownerId is immutable post-creation — only set if it was undefined
+    // before (claiming a legacy listener).
+    ownerId: existing.ownerId,
+    visibility:
+      body?.visibility !== undefined
+        ? normalizeVisibility(body.visibility) ?? existing.visibility
+        : existing.visibility,
     mode: body?.mode ? normalizeMode(body.mode) : existing.mode ?? "news",
     kind: body?.kind !== undefined ? normalizeKind(body.kind) : existing.kind,
     context:

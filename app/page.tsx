@@ -9,6 +9,8 @@ interface ListenerCard {
   name: string;
   subject: string;
   mode?: "news" | "video" | "voices";
+  visibility?: "private" | "shared";
+  ownerId?: string;
   sources: { enabled: boolean }[];
   updatedAt: string;
   lastRunAt?: string;
@@ -135,6 +137,21 @@ export default function Home() {
                     {modeBadge(l.mode).emoji}
                   </span>
                   {l.name}
+                  {l.visibility === "shared" ? (
+                    <span
+                      title="Shared with the team"
+                      style={{ marginLeft: 6, fontSize: 12, opacity: 0.7 }}
+                    >
+                      👥
+                    </span>
+                  ) : l.visibility === "private" ? (
+                    <span
+                      title="Private — only you can see this"
+                      style={{ marginLeft: 6, fontSize: 12, opacity: 0.6 }}
+                    >
+                      🔒
+                    </span>
+                  ) : null}
                 </p>
                 <button
                   className="icon-btn"

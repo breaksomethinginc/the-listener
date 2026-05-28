@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
+import UserMenu from "@/components/UserMenu";
 
 export const metadata: Metadata = {
   title: "The Listener",
@@ -84,9 +85,12 @@ export default function RootLayout({
             <EarMark />
             The Listener <small>· professionally nosy</small>
           </Link>
-          <Link href="/listeners/new" className="btn btn-primary btn-sm">
-            + New listener
-          </Link>
+          <div className="row" style={{ gap: 10, alignItems: "center" }}>
+            <UserMenu />
+            <Link href="/listeners/new" className="btn btn-primary btn-sm">
+              + New listener
+            </Link>
+          </div>
         </header>
         <main className="main">{children}</main>
       </body>

@@ -10,7 +10,9 @@ import type {
   FeedSource,
   KeywordBundle,
   ListenerKind,
+  ListenerVisibility,
 } from "@/lib/types";
+import VisibilityPicker from "./VisibilityPicker";
 
 // ── helpers ──────────────────────────────────────────────────────────
 const KIND_OPTIONS: { value: ListenerKind; label: string; hint: string }[] = [
@@ -33,6 +35,7 @@ export interface WizardResult {
   name: string;
   subject: string;
   mode: "video";
+  visibility: ListenerVisibility;
   kind: ListenerKind;
   context?: string;
   maxAgeDays?: number;
@@ -52,6 +55,7 @@ export default function VideoWizard({ onSubmit }: Props) {
   const [context, setContext] = useState("");
   const [handles, setHandles] = useState<SubjectHandles>({});
   const [maxAgeDays, setMaxAgeDays] = useState<number>(90);
+  const [visibility, setVisibility] = useState<ListenerVisibility>("private");
   const [coverage, setCoverage] = useState<Coverage>({
     ofThem: true,
     aboutThem: true,
@@ -110,6 +114,7 @@ export default function VideoWizard({ onSubmit }: Props) {
         name: name.trim() || `${name} listener`,
         subject: name.trim(),
         mode: "video",
+        visibility,
         kind,
         context: context.trim() || undefined,
         maxAgeDays: maxAgeDays > 0 ? maxAgeDays : undefined,
@@ -459,6 +464,11 @@ export default function VideoWizard({ onSubmit }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+          </div>
+
+          <div className="field" style={{ marginBottom: 4 }}>
+            <label>Visibility</label>
+            <VisibilityPicker value={visibility} onChange={setVisibility} small />
           </div>
 
           <div style={{ marginTop: 16 }}>

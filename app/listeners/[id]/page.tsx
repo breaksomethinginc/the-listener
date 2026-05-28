@@ -171,6 +171,7 @@ export default function ListenerDetailPage() {
             name: listener.name,
             subject: listener.subject,
             mode: listener.mode ?? "news",
+            visibility: listener.visibility ?? "private",
             keywords: listener.keywords,
             sources: listener.sources,
           }}

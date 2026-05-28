@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { visibleTo } from "@/lib/access";
 import { makeListener } from "@/lib/listener";
 import { getStore, storeKind } from "@/lib/store";
 import type { Listener } from "@/lib/types";
@@ -20,20 +22,33 @@ function toCard(l: Listener) {
 }
 
 export async function GET() {
-  const listeners = await getStore().all();
+  const session = await auth();
+  const email = session?.user?.email || null;
+  if (!email) {
+    return Response.json({ error: "Sign-in required" }, { status: 401 });
+  }
+  const all = await getStore().all();
+  const listeners = visibleTo(all, email);
   listeners.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
   return Response.json({
     listeners: listeners.map(toCard),
     storage: storeKind(),
+    user: { email },
   });
 }
 
 export async function POST(req: Request) {
+  const session = await auth();
+  const email = session?.user?.email || null;
+  if (!email) {
+    return Response.json({ error: "Sign-in required" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   if (!body || !String(body.name || "").trim()) {
     return Response.json({ error: "A name is required" }, { status: 400 });
   }
-  const listener = makeListener(body);
+  // Stamp the listener with the creator's email as owner.
+  const listener = makeListener(body, email);
   await getStore().put(listener);
   return Response.json({ listener });
 }

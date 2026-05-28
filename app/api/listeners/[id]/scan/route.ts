@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { canView } from "@/lib/access";
 import { runScan } from "@/lib/scanner";
 import { getStore } from "@/lib/store";
 
@@ -8,9 +10,14 @@ export const maxDuration = 60;
 type Ctx = { params: { id: string } };
 
 export async function POST(_req: Request, { params }: Ctx) {
+  const session = await auth();
+  const email = session?.user?.email || null;
+  if (!email) {
+    return Response.json({ error: "Sign-in required" }, { status: 401 });
+  }
   const store = getStore();
   const listener = await store.get(params.id);
-  if (!listener) {
+  if (!listener || !canView(listener, email)) {
     return Response.json({ error: "Listener not found" }, { status: 404 });
   }
 

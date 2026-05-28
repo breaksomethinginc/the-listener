@@ -4,12 +4,15 @@ import { useState } from "react";
 import type {
   FeedSource,
   KeywordBundle,
+  ListenerVisibility,
 } from "@/lib/types";
+import VisibilityPicker from "./VisibilityPicker";
 
 export interface QuickStartResult {
   name: string;
   subject: string;
   mode: "news";
+  visibility: ListenerVisibility;
   keywords: KeywordBundle;
   sources: FeedSource[];
 }
@@ -26,6 +29,7 @@ interface Props {
 export default function NewsQuickStart({ onSubmit }: Props) {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
+  const [visibility, setVisibility] = useState<ListenerVisibility>("private");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +52,7 @@ export default function NewsQuickStart({ onSubmit }: Props) {
         name: n || s,
         subject: s,
         mode: "news",
+        visibility,
         keywords: data.keywords,
         sources: data.sources,
       });
@@ -84,7 +89,7 @@ export default function NewsQuickStart({ onSubmit }: Props) {
         />
       </div>
 
-      <div className="field" style={{ marginBottom: 4 }}>
+      <div className="field">
         <label>
           Listener name <span className="hint">— optional</span>
         </label>
@@ -97,6 +102,11 @@ export default function NewsQuickStart({ onSubmit }: Props) {
             if (e.key === "Enter") save();
           }}
         />
+      </div>
+
+      <div className="field" style={{ marginBottom: 4 }}>
+        <label>Visibility</label>
+        <VisibilityPicker value={visibility} onChange={setVisibility} small />
       </div>
 
       <div

@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import type { VoicesInput } from "@/lib/autofill";
-import type { FeedSource, KeywordBundle } from "@/lib/types";
+import type {
+  FeedSource,
+  KeywordBundle,
+  ListenerVisibility,
+} from "@/lib/types";
+import VisibilityPicker from "./VisibilityPicker";
 
 // ── time options ─────────────────────────────────────────────────────
 const TIME_OPTIONS: { days: number; label: string }[] = [
@@ -18,6 +23,7 @@ export interface VoicesWizardResult {
   name: string;
   subject: string;
   mode: "voices";
+  visibility: ListenerVisibility;
   context?: string;
   maxAgeDays?: number;
   keywords: KeywordBundle;
@@ -35,6 +41,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
   const [context, setContext] = useState("");
   const [maxAgeDays, setMaxAgeDays] = useState<number>(90);
   const [includeDiscussion, setIncludeDiscussion] = useState(false);
+  const [visibility, setVisibility] = useState<ListenerVisibility>("private");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
@@ -78,6 +85,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
         name: name.trim() || `${name} (voices)`,
         subject: name.trim(),
         mode: "voices",
+        visibility,
         context: context.trim() || undefined,
         maxAgeDays: maxAgeDays > 0 ? maxAgeDays : undefined,
         keywords: preview.keywords,
@@ -263,6 +271,11 @@ export default function VoicesWizard({ onSubmit }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+          </div>
+
+          <div className="field" style={{ marginBottom: 4 }}>
+            <label>Visibility</label>
+            <VisibilityPicker value={visibility} onChange={setVisibility} small />
           </div>
 
           <div style={{ marginTop: 16 }}>

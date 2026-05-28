@@ -5,8 +5,10 @@ import type {
   FeedSource,
   KeywordBundle,
   ListenerMode,
+  ListenerVisibility,
   Platform,
 } from "@/lib/types";
+import VisibilityPicker from "./VisibilityPicker";
 
 const PLATFORM_OPTIONS: Platform[] = [
   "rss", "youtube", "rumble", "x", "truthsocial", "substack",
@@ -20,6 +22,7 @@ export interface ListenerFormValue {
   name: string;
   subject: string;
   mode: ListenerMode;
+  visibility?: ListenerVisibility;
   keywords: KeywordBundle;
   sources: FeedSource[];
 }
@@ -45,6 +48,9 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
   const [name, setName] = useState(initial?.name ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [mode, setMode] = useState<ListenerMode>(initial?.mode ?? "news");
+  const [visibility, setVisibility] = useState<ListenerVisibility>(
+    initial?.visibility ?? "private",
+  );
   const [kwAny, setKwAny] = useState((initial?.keywords?.any ?? []).join(", "));
   const [kwBoost, setKwBoost] = useState(
     (initial?.keywords?.boost ?? []).join(", "),
@@ -138,6 +144,7 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
         name: name.trim(),
         subject: subject.trim(),
         mode,
+        visibility,
         keywords: {
           any: splitList(kwAny),
           boost: splitList(kwBoost),
@@ -192,6 +199,10 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
                   : "Pulls Google News, Bing News, Reddit, Bluesky, Mastodon."}
             </span>
           </div>
+        </div>
+        <div className="field">
+          <label>Visibility</label>
+          <VisibilityPicker value={visibility} onChange={setVisibility} small />
         </div>
         <div className="field">
           <label>Listener name</label>
