@@ -19,6 +19,20 @@ const TIME_OPTIONS: { days: number; label: string }[] = [
   { days: 0, label: "All time" },
 ];
 
+// ── audience tiers ───────────────────────────────────────────────────
+// Standard creator-economy bands. 0 = no cap.
+const AUDIENCE_TIERS: {
+  cap: number;
+  label: string;
+  hint: string;
+}[] = [
+  { cap: 0, label: "🌍 No limit", hint: "anyone, big or small" },
+  { cap: 1_000, label: "🌱 Under 1K", hint: "very small / nano creators" },
+  { cap: 10_000, label: "🪴 Under 10K", hint: "small / emerging creators" },
+  { cap: 100_000, label: "🌳 Under 100K", hint: "micro-influencer range" },
+  { cap: 1_000_000, label: "🏙 Under 1M", hint: "mid-tier creators" },
+];
+
 export interface VoicesWizardResult {
   name: string;
   subject: string;
@@ -26,6 +40,7 @@ export interface VoicesWizardResult {
   visibility: ListenerVisibility;
   context?: string;
   maxAgeDays?: number;
+  maxAudience?: number;
   keywords: KeywordBundle;
   sources: FeedSource[];
 }
@@ -41,6 +56,8 @@ export default function VoicesWizard({ onSubmit }: Props) {
   const [context, setContext] = useState("");
   const [maxAgeDays, setMaxAgeDays] = useState<number>(90);
   const [includeDiscussion, setIncludeDiscussion] = useState(false);
+  const [maxAudience, setMaxAudience] = useState<number>(0); // 0 = no cap
+  const [customAudience, setCustomAudience] = useState<string>("");
   const [visibility, setVisibility] = useState<ListenerVisibility>("private");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +85,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not build autofill");
       setPreview({ keywords: data.keywords, sources: data.sources });
-      setStep(3);
+      setStep(4);
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -88,6 +105,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
         visibility,
         context: context.trim() || undefined,
         maxAgeDays: maxAgeDays > 0 ? maxAgeDays : undefined,
+        maxAudience: maxAudience > 0 ? maxAudience : undefined,
         keywords: preview.keywords,
         sources: preview.sources,
       });
@@ -103,7 +121,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
     <div>
       {/* Progress dots */}
       <div className="row" style={{ gap: 8, marginBottom: 24 }}>
-        {[1, 2, 3].map((n) => (
+        {[1, 2, 3, 4].map((n) => (
           <span
             key={n}
             style={{
@@ -243,6 +261,93 @@ export default function VoicesWizard({ onSubmit }: Props) {
             <button
               type="button"
               className="btn btn-primary"
+              onClick={() => setStep(3)}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── STEP 3: max audience ─────────────────────────────────── */}
+      {step === 3 ? (
+        <div className="panel">
+          <h2>Cap on creator size?</h2>
+          <p className="subtle" style={{ marginBottom: 18 }}>
+            Drop posts from creators with more followers than this.
+            Useful when you want to find up-and-coming voices, not
+            verified mega-accounts. Items where we can&apos;t determine
+            follower count pass through.
+          </p>
+          <div className="stack" style={{ gap: 8 }}>
+            {AUDIENCE_TIERS.map((opt) => (
+              <button
+                key={opt.cap}
+                type="button"
+                className={`btn ${maxAudience === opt.cap ? "btn-primary" : ""}`}
+                onClick={() => {
+                  setMaxAudience(opt.cap);
+                  setCustomAudience("");
+                }}
+                style={{
+                  justifyContent: "flex-start",
+                  padding: "10px 14px",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>{opt.label}</span>
+                <span
+                  className="faint"
+                  style={{ marginLeft: 10, fontSize: 12 }}
+                >
+                  {opt.hint}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "var(--text-dim)",
+                marginBottom: 6,
+              }}
+            >
+              Or set a custom cap (followers)
+            </label>
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={customAudience}
+              placeholder="e.g. 25000"
+              onChange={(e) => {
+                const v = e.target.value;
+                setCustomAudience(v);
+                const n = parseInt(v, 10);
+                if (Number.isFinite(n) && n > 0) setMaxAudience(n);
+                else if (v === "") setMaxAudience(0);
+              }}
+              style={{ width: 200 }}
+            />
+          </div>
+
+          <div
+            className="row"
+            style={{ justifyContent: "space-between", marginTop: 20 }}
+          >
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setStep(2)}
+            >
+              ← Back
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
               onClick={fetchPreview}
               disabled={busy}
             >
@@ -252,8 +357,8 @@ export default function VoicesWizard({ onSubmit }: Props) {
         </div>
       ) : null}
 
-      {/* ── STEP 3: preview + save ───────────────────────────────── */}
-      {step === 3 && preview ? (
+      {/* ── STEP 4: preview + save ───────────────────────────────── */}
+      {step === 4 && preview ? (
         <div className="panel">
           <h2>Ready to listen?</h2>
           <p className="subtle" style={{ marginBottom: 18 }}>
@@ -262,6 +367,9 @@ export default function VoicesWizard({ onSubmit }: Props) {
             {maxAgeDays > 0
               ? ` · ${TIME_OPTIONS.find((t) => t.days === maxAgeDays)?.label.toLowerCase()}`
               : " · no time limit"}
+            {maxAudience > 0
+              ? ` · creators ≤ ${maxAudience.toLocaleString()} followers`
+              : " · no audience cap"}
           </p>
 
           <div className="field">
@@ -323,7 +431,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
             <button
               type="button"
               className="btn btn-ghost"
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
             >
               ← Back
             </button>

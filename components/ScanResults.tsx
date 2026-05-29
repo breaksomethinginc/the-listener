@@ -260,6 +260,7 @@ function ResultRow({ item }: { item: CandidateItem }) {
   const views = fmtNum(item.views);
   const likes = fmtNum(item.likes);
   const comments = fmtNum(item.commentCount);
+  const followers = fmtNum(item.creatorFollowers);
   const showYouTubeComments =
     item.platform === "youtube" && (item.videoId || /[?&]v=/.test(item.url || ""));
   const ytId =
@@ -439,6 +440,12 @@ function ResultRow({ item }: { item: CandidateItem }) {
           <span>·</span>
           <span>{timeAgo(item.publishedAt)}</span>
 
+          {followers ? (
+            <>
+              <span>·</span>
+              <span title="Creator followers">🫂 {followers}</span>
+            </>
+          ) : null}
           {views ? (
             <>
               <span>·</span>
@@ -510,6 +517,7 @@ function toCsv(items: CandidateItem[]): string {
     "platform",
     "creator",
     "creator_url",
+    "creator_followers",
     "publishedAt",
     "views",
     "likes",
@@ -527,6 +535,7 @@ function toCsv(items: CandidateItem[]): string {
       it.platform || "",
       it.creator || it.source,
       it.creatorUrl || "",
+      it.creatorFollowers !== undefined ? String(it.creatorFollowers) : "",
       it.publishedAt,
       it.views !== undefined ? String(it.views) : "",
       it.likes !== undefined ? String(it.likes) : "",

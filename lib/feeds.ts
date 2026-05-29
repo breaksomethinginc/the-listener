@@ -20,6 +20,7 @@ export interface RawItem {
   views?: number;
   likes?: number;
   commentCount?: number;
+  creatorFollowers?: number;
   durationSec?: number;
 }
 
@@ -90,6 +91,7 @@ export function toCandidate(r: RawItem): CandidateItem {
     views: r.views,
     likes: r.likes,
     commentCount: r.commentCount,
+    creatorFollowers: r.creatorFollowers,
     durationSec: r.durationSec,
   };
 }

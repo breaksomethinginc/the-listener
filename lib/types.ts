@@ -79,6 +79,9 @@ export interface CandidateItem {
   views?: number;
   likes?: number;
   commentCount?: number;
+  /** Creator's follower / subscriber count, when known. Used by Voices'
+   *  maxAudience filter to surface smaller creators. */
+  creatorFollowers?: number;
   /** Video duration in seconds, when known. */
   durationSec?: number;
 }
@@ -117,6 +120,9 @@ export interface Listener {
   context?: string;
   /** Hard time filter — items older than this are dropped before scoring. Undefined = no filter. */
   maxAgeDays?: number;
+  /** Voices: max creator follower/subscriber count to keep. Items with
+   *  more get dropped; items with unknown follower count pass through. */
+  maxAudience?: number;
   keywords: KeywordBundle;
   sources: FeedSource[];
   createdAt: string;

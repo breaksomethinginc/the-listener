@@ -218,6 +218,25 @@ export async function fetchApify(
         "comments",
         "commentsTotal",
       ),
+      // Creator follower / subscriber count. Different scrapers put it
+      // at different paths — top-level OR inside the same nested
+      // creator object that holds the handle. Walk both.
+      creatorFollowers:
+        num(
+          it,
+          "ownerFollowersCount",      // Instagram (apify/instagram-scraper)
+          "followersCount",           // Threads, generic
+          "followerCount",
+          "subscriberCount",          // YouTube
+          "channelSubscriberCount",
+          "fans",                     // TikTok top-level (rare)
+          "pageFollowers",            // Facebook page
+          "pageLikes",
+        ) ??
+        num(it.authorMeta, "fans", "followers", "followersCount") ?? // TikTok
+        num(it.author, "followersCount", "followerCount", "subscriberCount") ??
+        num(it.user, "followersCount", "subscriberCount") ??
+        num(it.channel, "subscriberCount", "subscribers"),
       durationSec: num(
         it,
         "duration",

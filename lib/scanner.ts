@@ -171,15 +171,30 @@ export function rankCandidates(
   trustById: Record<string, number>,
   maxAgeDays?: number,
   mode?: ListenerMode,
+  maxAudience?: number,
 ): CandidateItem[] {
   const inWindow = applyAgeFilter(items, maxAgeDays);
   const scored: CandidateItem[] = [];
   // Voices mode: drop anything that links to a known news outlet,
   // even if it came in via a Reddit/Bluesky/Mastodon link post.
   const dropNewsDomains = mode === "voices";
+  // Hard ceiling on creator follower count. Items where the follower
+  // count is unknown pass through (we'd rather show them than discard
+  // for missing data).
+  const audienceCap =
+    maxAudience && Number.isFinite(maxAudience) && maxAudience > 0
+      ? maxAudience
+      : undefined;
 
   for (const it of inWindow) {
     if (dropNewsDomains && isNewsDomain(it.url)) continue;
+    if (
+      audienceCap &&
+      typeof it.creatorFollowers === "number" &&
+      it.creatorFollowers > audienceCap
+    ) {
+      continue;
+    }
     const { relevance, matched } = scoreItem(it, kw);
     if (relevance <= 0) continue;
     const trust =
@@ -238,6 +253,7 @@ export async function runScan(
     trustById,
     listener.maxAgeDays,
     listener.mode,
+    listener.maxAudience,
   );
 
   return {
