@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { canView } from "@/lib/access";
 import { runScan } from "@/lib/scanner";
+import { appendPosted, postScanToSlack } from "@/lib/slack";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,23 @@ export async function POST(_req: Request, { params }: Ctx) {
   listener.lastResult = result;
   listener.lastRunAt = result.ranAt;
   listener.updatedAt = result.ranAt;
+
+  // Post new high-scoring items to Slack if a webhook is configured.
+  // Failures here don't block the scan response — they show up as a
+  // `slack` field on the result so the UI can surface the error.
+  let slack: { ok: boolean; posted: number; skipped: number; error?: string } | undefined;
+  if (listener.slackWebhookUrl) {
+    const r = await postScanToSlack(listener, result.ranked);
+    listener.postedItemIds = appendPosted(listener.postedItemIds, r.postedIds);
+    slack = {
+      ok: r.ok,
+      posted: r.postedIds.length,
+      skipped: r.skipped,
+      error: r.error,
+    };
+  }
+
   await store.put(listener);
 
-  return Response.json({ result });
+  return Response.json({ result, slack });
 }

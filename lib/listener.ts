@@ -40,6 +40,22 @@ function normalizeMaxAudience(v: unknown): number | undefined {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
 }
 
+function normalizeWebhook(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const t = v.trim();
+  if (!t) return undefined;
+  // Accept only Slack webhook URLs to avoid posting to arbitrary
+  // domains the user didn't intend.
+  if (!/^https:\/\/hooks\.slack\.com\//i.test(t)) return undefined;
+  return t.slice(0, 400);
+}
+
+function normalizeMinScore(v: unknown): number | undefined {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 const PLATFORMS: Platform[] = [
   "rss", "atom", "json", "youtube", "rumble", "x", "twitter", "truth",
   "truthsocial", "substack", "reddit", "bluesky", "discord", "mastodon",
@@ -113,6 +129,8 @@ export function makeListener(body: any, ownerId?: string): Listener {
       : undefined,
     maxAgeDays: normalizeMaxAge(body?.maxAgeDays),
     maxAudience: normalizeMaxAudience(body?.maxAudience),
+    slackWebhookUrl: normalizeWebhook(body?.slackWebhookUrl),
+    slackMinScore: normalizeMinScore(body?.slackMinScore),
     keywords: normalizeKeywords(body?.keywords),
     sources: normalizeSources(body?.sources),
     createdAt: now,
@@ -149,6 +167,16 @@ export function applyEdit(existing: Listener, body: any): Listener {
       body?.maxAudience !== undefined
         ? normalizeMaxAudience(body.maxAudience)
         : existing.maxAudience,
+    slackWebhookUrl:
+      body?.slackWebhookUrl !== undefined
+        ? normalizeWebhook(body.slackWebhookUrl)
+        : existing.slackWebhookUrl,
+    slackMinScore:
+      body?.slackMinScore !== undefined
+        ? normalizeMinScore(body.slackMinScore)
+        : existing.slackMinScore,
+    // postedItemIds is server-managed — never accepted from the body.
+    postedItemIds: existing.postedItemIds,
     keywords: body?.keywords
       ? normalizeKeywords(body.keywords)
       : existing.keywords,

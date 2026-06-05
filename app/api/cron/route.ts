@@ -1,4 +1,5 @@
 import { runScan } from "@/lib/scanner";
+import { appendPosted, postScanToSlack } from "@/lib/slack";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +30,25 @@ export async function GET(req: Request) {
       listener.lastResult = result;
       listener.lastRunAt = result.ranAt;
       listener.updatedAt = result.ranAt;
+      let slackPosted = 0;
+      let slackError: string | undefined;
+      if (listener.slackWebhookUrl) {
+        const r = await postScanToSlack(listener, result.ranked);
+        listener.postedItemIds = appendPosted(
+          listener.postedItemIds,
+          r.postedIds,
+        );
+        slackPosted = r.postedIds.length;
+        slackError = r.error;
+      }
       await store.put(listener);
-      ran.push({ id: listener.id, name: listener.name, ranked: result.ranked.length });
+      ran.push({
+        id: listener.id,
+        name: listener.name,
+        ranked: result.ranked.length,
+        slackPosted,
+        ...(slackError ? { slackError } : {}),
+      });
     } catch (e: any) {
       ran.push({ id: listener.id, name: listener.name, error: String(e?.message || e) });
     }

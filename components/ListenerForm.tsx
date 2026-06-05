@@ -23,6 +23,8 @@ export interface ListenerFormValue {
   subject: string;
   mode: ListenerMode;
   visibility?: ListenerVisibility;
+  slackWebhookUrl?: string;
+  slackMinScore?: number;
   keywords: KeywordBundle;
   sources: FeedSource[];
 }
@@ -51,6 +53,36 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
   const [visibility, setVisibility] = useState<ListenerVisibility>(
     initial?.visibility ?? "private",
   );
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState(
+    initial?.slackWebhookUrl ?? "",
+  );
+  const [slackMinScore, setSlackMinScore] = useState(
+    initial?.slackMinScore ?? 50,
+  );
+  const [slackTesting, setSlackTesting] = useState(false);
+  const [slackTestMsg, setSlackTestMsg] = useState<string | null>(null);
+
+  async function sendSlackTest() {
+    setSlackTesting(true);
+    setSlackTestMsg(null);
+    try {
+      const res = await fetch("/api/slack-test", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: slackWebhookUrl,
+          listenerName: name || "Untitled",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setSlackTestMsg("✓ Test message sent. Check the Slack channel.");
+    } catch (e: any) {
+      setSlackTestMsg(`✗ ${String(e?.message || e)}`);
+    } finally {
+      setSlackTesting(false);
+    }
+  }
   const [kwAny, setKwAny] = useState((initial?.keywords?.any ?? []).join(", "));
   const [kwBoost, setKwBoost] = useState(
     (initial?.keywords?.boost ?? []).join(", "),
@@ -145,6 +177,8 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
         subject: subject.trim(),
         mode,
         visibility,
+        slackWebhookUrl: slackWebhookUrl.trim() || undefined,
+        slackMinScore,
         keywords: {
           any: splitList(kwAny),
           boost: splitList(kwBoost),
@@ -388,6 +422,81 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
               ) : null}
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="panel">
+        <h2>Slack notifications</h2>
+        <p className="faint" style={{ fontSize: 13, marginBottom: 14 }}>
+          Paste an{" "}
+          <a
+            href="https://api.slack.com/messaging/webhooks"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Incoming Webhook URL
+          </a>{" "}
+          and the top new items above the threshold will post to that
+          channel after every scan (manual or daily cron). Items are
+          deduped — you won't see the same clip twice.
+        </p>
+
+        <div className="field">
+          <label>Webhook URL</label>
+          <input
+            type="url"
+            value={slackWebhookUrl}
+            placeholder="https://hooks.slack.com/services/T.../B.../..."
+            onChange={(e) => setSlackWebhookUrl(e.target.value)}
+            spellCheck={false}
+          />
+        </div>
+
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>
+            Minimum viral score{" "}
+            <span className="hint">— only post items at or above this score</span>
+          </label>
+          <div className="row" style={{ gap: 12, alignItems: "center" }}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={slackMinScore}
+              onChange={(e) => setSlackMinScore(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span
+              className="chip"
+              style={{
+                minWidth: 36,
+                textAlign: "center",
+                background: "rgba(61, 215, 198, 0.12)",
+                color: "var(--accent)",
+              }}
+            >
+              {slackMinScore}
+            </span>
+          </div>
+          <p className="faint" style={{ fontSize: 12, marginTop: 6 }}>
+            50 ≈ trending. 70+ ≈ viral. 0 = post everything (noisy).
+          </p>
+        </div>
+
+        <div className="row" style={{ gap: 10, alignItems: "center" }}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={sendSlackTest}
+            disabled={slackTesting || !slackWebhookUrl.trim()}
+          >
+            {slackTesting ? "Sending…" : "Send test message"}
+          </button>
+          {slackTestMsg ? (
+            <span className="faint" style={{ fontSize: 12 }}>
+              {slackTestMsg}
+            </span>
+          ) : null}
         </div>
       </div>
 

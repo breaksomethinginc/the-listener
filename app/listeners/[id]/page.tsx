@@ -172,6 +172,8 @@ export default function ListenerDetailPage() {
             subject: listener.subject,
             mode: listener.mode ?? "news",
             visibility: listener.visibility ?? "private",
+            slackWebhookUrl: listener.slackWebhookUrl,
+            slackMinScore: listener.slackMinScore,
             keywords: listener.keywords,
             sources: listener.sources,
           }}

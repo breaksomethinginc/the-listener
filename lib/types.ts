@@ -123,6 +123,14 @@ export interface Listener {
   /** Voices: max creator follower/subscriber count to keep. Items with
    *  more get dropped; items with unknown follower count pass through. */
   maxAudience?: number;
+  /** Slack Incoming Webhook URL. When set, top new results are posted
+   *  to the channel after each scan (manual + cron). */
+  slackWebhookUrl?: string;
+  /** Minimum viral score for an item to be eligible for Slack posting. */
+  slackMinScore?: number;
+  /** FIFO dedupe ledger — IDs we've already posted, so reruns don't
+   *  spam Slack with the same items. Capped to ~500 entries. */
+  postedItemIds?: string[];
   keywords: KeywordBundle;
   sources: FeedSource[];
   createdAt: string;
