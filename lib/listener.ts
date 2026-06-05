@@ -9,6 +9,7 @@ import type {
   ListenerMode,
   ListenerVisibility,
   Platform,
+  SubjectDef,
 } from "./types";
 
 function normalizeVisibility(v: unknown): ListenerVisibility | undefined {
@@ -17,9 +18,31 @@ function normalizeVisibility(v: unknown): ListenerVisibility | undefined {
   return undefined;
 }
 
+function normalizeSubjects(v: unknown): SubjectDef[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: SubjectDef[] = [];
+  for (const s of v) {
+    const name = String(s?.name || "").trim().slice(0, 140);
+    if (!name) continue;
+    const h = s?.handles && typeof s.handles === "object" ? s.handles : {};
+    const handles: NonNullable<SubjectDef["handles"]> = {};
+    for (const k of ["youtube", "tiktok", "instagram", "x", "facebook"] as const) {
+      const v = h?.[k];
+      if (typeof v === "string" && v.trim()) handles[k] = v.trim().slice(0, 140);
+    }
+    out.push({
+      name,
+      context: s?.context ? String(s.context).slice(0, 200) : undefined,
+      handles: Object.keys(handles).length ? handles : undefined,
+    });
+  }
+  return out.length ? out : undefined;
+}
+
 function normalizeMode(v: unknown): ListenerMode {
   if (v === "video") return "video";
   if (v === "voices") return "voices";
+  if (v === "race") return "race";
   return "news";
 }
 
@@ -127,6 +150,7 @@ export function makeListener(body: any, ownerId?: string): Listener {
     context: body?.context
       ? String(body.context).slice(0, 280)
       : undefined,
+    subjects: normalizeSubjects(body?.subjects),
     maxAgeDays: normalizeMaxAge(body?.maxAgeDays),
     maxAudience: normalizeMaxAudience(body?.maxAudience),
     slackWebhookUrl: normalizeWebhook(body?.slackWebhookUrl),
@@ -159,6 +183,10 @@ export function applyEdit(existing: Listener, body: any): Listener {
           ? String(body.context).slice(0, 280)
           : undefined
         : existing.context,
+    subjects:
+      body?.subjects !== undefined
+        ? normalizeSubjects(body.subjects)
+        : existing.subjects,
     maxAgeDays:
       body?.maxAgeDays !== undefined
         ? normalizeMaxAge(body.maxAgeDays)

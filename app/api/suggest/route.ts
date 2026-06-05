@@ -8,11 +8,13 @@
 
 import {
   buildListenerFromIntent,
+  buildRaceFromIntent,
   buildVoicesFromIntent,
 } from "@/lib/autofill";
 import type {
   AutofillInput,
   AvailableKeys,
+  RaceInput,
   VoicesInput,
 } from "@/lib/autofill";
 import { suggestKeywords, suggestSources } from "@/lib/keywords";
@@ -68,6 +70,18 @@ export async function POST(req: Request) {
   if ((body as any).mode === "voices") {
     const out = buildVoicesFromIntent(body as VoicesInput, keys);
     return Response.json({ ...out, mode: "voices", availableKeys: keys });
+  }
+
+  if ((body as any).mode === "race") {
+    const r = body as RaceInput;
+    if (!Array.isArray(r.candidates) || r.candidates.length === 0 || !r.coverage) {
+      return Response.json(
+        { error: "Race autofill needs { name, candidates[], coverage }" },
+        { status: 400 },
+      );
+    }
+    const out = buildRaceFromIntent(r, keys);
+    return Response.json({ ...out, mode: "race", availableKeys: keys });
   }
 
   const v = body as AutofillInput;

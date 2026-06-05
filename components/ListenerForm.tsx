@@ -225,12 +225,22 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
             >
               🗣 Voices
             </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${mode === "race" ? "btn-primary" : ""}`}
+              onClick={() => setMode("race")}
+              title="Race — multiple candidates plus race-wide coverage"
+            >
+              🏁 Race
+            </button>
             <span className="faint" style={{ fontSize: 12 }}>
               {mode === "video"
                 ? "Pulls YouTube, TikTok, Instagram, Facebook + news channels."
                 : mode === "voices"
                   ? "Pulls TikTok, Instagram, Threads, Facebook — no outlets."
-                  : "Pulls Google News, Bing News, Reddit, Bluesky, Mastodon."}
+                  : mode === "race"
+                    ? "Per-candidate coverage + race-wide news / social."
+                    : "Pulls Google News, Bing News, Reddit, Bluesky, Mastodon."}
             </span>
           </div>
         </div>

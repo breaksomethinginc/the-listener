@@ -164,7 +164,10 @@ export default function ListenerDetailPage() {
       </div>
 
       {tab === "results" ? (
-        <ScanResults result={listener.lastResult ?? null} />
+        <ScanResults
+          result={listener.lastResult ?? null}
+          subjects={listener.subjects}
+        />
       ) : (
         <ListenerForm
           initial={{
