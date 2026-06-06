@@ -55,26 +55,32 @@ export async function GET(req: Request) {
  *   POST { mode: "voices", name, ... }  → voices listener autofill
  */
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null)) as
-    | (AutofillInput & { mode?: string })
-    | (VoicesInput & { mode: "voices" })
+  // Stay deliberately loose — the body shape varies by `mode`. Each
+  // branch narrows via `unknown` to its concrete input type.
+  const raw = (await req.json().catch(() => null)) as
+    | Record<string, unknown>
     | null;
-  if (!body || !(body as any).name) {
+  if (!raw || typeof raw.name !== "string" || !raw.name.trim()) {
     return Response.json(
       { error: "Provide { name, ... } in the body" },
       { status: 400 },
     );
   }
   const keys = readKeys();
+  const mode = typeof raw.mode === "string" ? raw.mode : "video";
 
-  if ((body as any).mode === "voices") {
-    const out = buildVoicesFromIntent(body as VoicesInput, keys);
+  if (mode === "voices") {
+    const out = buildVoicesFromIntent(raw as unknown as VoicesInput, keys);
     return Response.json({ ...out, mode: "voices", availableKeys: keys });
   }
 
-  if ((body as any).mode === "race") {
-    const r = body as RaceInput;
-    if (!Array.isArray(r.candidates) || r.candidates.length === 0 || !r.coverage) {
+  if (mode === "race") {
+    const r = raw as unknown as RaceInput;
+    if (
+      !Array.isArray(r.candidates) ||
+      r.candidates.length === 0 ||
+      !r.coverage
+    ) {
       return Response.json(
         { error: "Race autofill needs { name, candidates[], coverage }" },
         { status: 400 },
@@ -84,7 +90,8 @@ export async function POST(req: Request) {
     return Response.json({ ...out, mode: "race", availableKeys: keys });
   }
 
-  const v = body as AutofillInput;
+  // Default = video listener wizard.
+  const v = raw as unknown as AutofillInput;
   if (!v.kind || !v.coverage) {
     return Response.json(
       { error: "Provide { kind, name, coverage } in the body" },
