@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  Coverage,
-  RaceCandidate,
-  RaceInput,
-} from "@/lib/autofill";
+import type { Coverage, RaceInput } from "@/lib/autofill";
 import type {
   FeedSource,
   KeywordBundle,
@@ -41,12 +37,14 @@ interface Props {
 }
 
 // Each candidate row is editable in place. Add / remove inline.
+type HandleKey = "youtube" | "tiktok" | "instagram" | "x" | "facebook";
+
 interface CandRow {
   id: string;
   name: string;
   context: string;
   expanded: boolean;
-  handles: NonNullable<RaceCandidate["handles"]>;
+  handles: Partial<Record<HandleKey, string>>;
 }
 
 function freshCand(): CandRow {
@@ -57,6 +55,18 @@ function freshCand(): CandRow {
     expanded: false,
     handles: {},
   };
+}
+
+/** Drop empty / whitespace-only handle entries; preserves strict typing. */
+function cleanHandles(
+  h: Partial<Record<HandleKey, string>>,
+): Partial<Record<HandleKey, string>> {
+  const out: Partial<Record<HandleKey, string>> = {};
+  (Object.keys(h) as HandleKey[]).forEach((k) => {
+    const v = h[k];
+    if (typeof v === "string" && v.trim()) out[k] = v.trim();
+  });
+  return out;
 }
 
 export default function RaceWizard({ onSubmit }: Props) {
@@ -86,13 +96,10 @@ export default function RaceWizard({ onSubmit }: Props) {
   function patchCand(i: number, p: Partial<CandRow>) {
     setCandidates((prev) => prev.map((c, j) => (j === i ? { ...c, ...p } : c)));
   }
-  function patchHandles(
-    i: number,
-    p: Partial<NonNullable<RaceCandidate["handles"]>>,
-  ) {
+  function patchHandle(i: number, key: HandleKey, value: string) {
     setCandidates((prev) =>
       prev.map((c, j) =>
-        j === i ? { ...c, handles: { ...c.handles, ...p } } : c,
+        j === i ? { ...c, handles: { ...c.handles, [key]: value } } : c,
       ),
     );
   }
@@ -124,9 +131,7 @@ export default function RaceWizard({ onSubmit }: Props) {
         candidates: filledCandidates.map((c) => ({
           name: c.name.trim(),
           context: c.context.trim() || undefined,
-          handles: Object.fromEntries(
-            Object.entries(c.handles).filter(([_, v]) => v && v.trim()),
-          ) as RaceCandidate["handles"],
+          handles: cleanHandles(c.handles),
         })),
         coverage,
         maxAgeDays: maxAgeDays > 0 ? maxAgeDays : undefined,
@@ -155,9 +160,7 @@ export default function RaceWizard({ onSubmit }: Props) {
       const subjects: SubjectDef[] = filledCandidates.map((c) => ({
         name: c.name.trim(),
         context: c.context.trim() || undefined,
-        handles: Object.fromEntries(
-          Object.entries(c.handles).filter(([_, v]) => v && v.trim()),
-        ) as SubjectDef["handles"],
+        handles: cleanHandles(c.handles),
       }));
       await onSubmit({
         name: raceName.trim(),
@@ -320,9 +323,7 @@ export default function RaceWizard({ onSubmit }: Props) {
                         type="text"
                         value={c.handles[k] ?? ""}
                         placeholder={ph}
-                        onChange={(e) =>
-                          patchHandles(i, { [k]: e.target.value } as any)
-                        }
+                        onChange={(e) => patchHandle(i, k, e.target.value)}
                       />
                     ))}
                   </div>

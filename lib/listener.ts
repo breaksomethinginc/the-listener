@@ -18,17 +18,20 @@ function normalizeVisibility(v: unknown): ListenerVisibility | undefined {
   return undefined;
 }
 
-function normalizeSubjects(v: unknown): SubjectDef[] | undefined {
-  if (!Array.isArray(v)) return undefined;
+function normalizeSubjects(value: unknown): SubjectDef[] | undefined {
+  if (!Array.isArray(value)) return undefined;
   const out: SubjectDef[] = [];
-  for (const s of v) {
+  for (const s of value) {
     const name = String(s?.name || "").trim().slice(0, 140);
     if (!name) continue;
-    const h = s?.handles && typeof s.handles === "object" ? s.handles : {};
+    const h: Record<string, unknown> =
+      s?.handles && typeof s.handles === "object" ? s.handles : {};
     const handles: NonNullable<SubjectDef["handles"]> = {};
     for (const k of ["youtube", "tiktok", "instagram", "x", "facebook"] as const) {
-      const v = h?.[k];
-      if (typeof v === "string" && v.trim()) handles[k] = v.trim().slice(0, 140);
+      const hv = h[k];
+      if (typeof hv === "string" && hv.trim()) {
+        handles[k] = hv.trim().slice(0, 140);
+      }
     }
     out.push({
       name,
