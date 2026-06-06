@@ -47,9 +47,24 @@ export default function NewListenerPage() {
   return (
     <div>
       <div className="page-head">
-        <div>
-          <h1>New listener</h1>
-          <p className="subtle">Set it up once. Re-run it whenever you like.</p>
+        <div className="row" style={{ gap: 14, alignItems: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/poses/wave.svg"
+            alt=""
+            aria-hidden
+            style={{
+              width: 56,
+              height: "auto",
+              opacity: 0.85,
+              filter: "drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35))",
+              flex: "0 0 auto",
+            }}
+          />
+          <div>
+            <h1>New listener</h1>
+            <p className="subtle">Set it up once. Re-run it whenever you like.</p>
+          </div>
         </div>
         <Link href="/" className="btn btn-ghost btn-sm">
           ← All listeners

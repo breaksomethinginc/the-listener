@@ -40,7 +40,20 @@ export default async function LoginPage({ searchParams }: PageProps) {
         className="panel"
         style={{ maxWidth: 420, width: "100%", textAlign: "center" }}
       >
-        <h1 style={{ marginBottom: 6 }}>👂 Sign in</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/poses/hero.svg"
+          alt=""
+          aria-hidden
+          style={{
+            display: "block",
+            width: 132,
+            height: "auto",
+            margin: "0 auto 12px",
+            filter: "drop-shadow(0 8px 18px rgba(0, 0, 0, 0.4))",
+          }}
+        />
+        <h1 style={{ marginBottom: 6 }}>Sign in</h1>
         <p className="subtle" style={{ marginBottom: 24 }}>
           The Listener is invite-only. Sign in with the Google account
           you were added with.
