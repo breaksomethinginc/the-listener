@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CandidateItem, ScanResult, SubjectDef } from "@/lib/types";
-import { cx, timeAgo } from "./util";
+import { cx, fmtDate, timeAgo } from "./util";
 import Embed from "./Embed";
 
 // ── number + duration formatting ─────────────────────────────────────
@@ -292,10 +292,15 @@ function ResultRow({ item, candidateName }: ResultRowProps) {
       style={{ cursor: cardClickable ? "pointer" : "default" }}
     >
       <div
-        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 86 }}
         title={SCORE_TOOLTIP}
       >
-        <span className={cx("score", tier.cls)}>{item.score}</span>
+        <span
+          className={cx("score", tier.cls)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}
+        >
+          🦠 Score {item.score}
+        </span>
         {tier.label ? (
           <span
             className="faint"
@@ -457,8 +462,21 @@ function ResultRow({ item, candidateName }: ResultRowProps) {
 
           <span>{item.source}</span>
 
-          <span>·</span>
-          <span>{timeAgo(item.publishedAt)}</span>
+          {item.publishedAt ? (
+            <>
+              <span>·</span>
+              <span
+                title={new Date(item.publishedAt).toLocaleString()}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                📅 {fmtDate(item.publishedAt)}
+              </span>
+              <span>·</span>
+              <span style={{ whiteSpace: "nowrap" }}>
+                {timeAgo(item.publishedAt)}
+              </span>
+            </>
+          ) : null}
 
           {followers ? (
             <>

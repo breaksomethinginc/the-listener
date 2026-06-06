@@ -1,5 +1,22 @@
 // Small client-side helpers shared across components.
 
+/**
+ * "Jun 5", "Jun 5, 2024" — concise calendar date from an ISO timestamp.
+ * Year is included only when the date isn't in the current calendar year.
+ */
+export function fmtDate(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: sameYear ? undefined : "numeric",
+  });
+}
+
 /** "3h ago", "2d ago", "just now" — from an ISO timestamp. */
 export function timeAgo(iso?: string): string {
   if (!iso) return "never";
