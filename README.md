@@ -173,3 +173,4 @@ and no dependency on the app, exactly as the original spec intended.
 - Scans hit live sites, so keep them to every 30–60 minutes to stay within
   rate limits. The free Vercel plan also caps how long a scan can run and
   how often cron fires (once daily) — fine for a handful of listeners.
+
