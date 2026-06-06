@@ -6,6 +6,7 @@ import type {
   KeywordBundle,
   ListenerVisibility,
 } from "@/lib/types";
+import ScanFrequencyPicker from "./ScanFrequencyPicker";
 import VisibilityPicker from "./VisibilityPicker";
 
 export interface QuickStartResult {
@@ -13,6 +14,7 @@ export interface QuickStartResult {
   subject: string;
   mode: "news";
   visibility: ListenerVisibility;
+  scanIntervalMinutes?: number;
   keywords: KeywordBundle;
   sources: FeedSource[];
 }
@@ -30,6 +32,7 @@ export default function NewsQuickStart({ onSubmit }: Props) {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [visibility, setVisibility] = useState<ListenerVisibility>("private");
+  const [scanIntervalMinutes, setScanIntervalMinutes] = useState<number>(1440);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +56,7 @@ export default function NewsQuickStart({ onSubmit }: Props) {
         subject: s,
         mode: "news",
         visibility,
+        scanIntervalMinutes,
         keywords: data.keywords,
         sources: data.sources,
       });
@@ -107,6 +111,14 @@ export default function NewsQuickStart({ onSubmit }: Props) {
       <div className="field" style={{ marginBottom: 4 }}>
         <label>Visibility</label>
         <VisibilityPicker value={visibility} onChange={setVisibility} small />
+      </div>
+
+      <div className="field" style={{ marginBottom: 4 }}>
+        <label>Auto-scan frequency</label>
+        <ScanFrequencyPicker
+          value={scanIntervalMinutes}
+          onChange={setScanIntervalMinutes}
+        />
       </div>
 
       <div

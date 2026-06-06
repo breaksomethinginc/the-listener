@@ -8,6 +8,7 @@ import type {
   ListenerVisibility,
   Platform,
 } from "@/lib/types";
+import ScanFrequencyPicker from "./ScanFrequencyPicker";
 import VisibilityPicker from "./VisibilityPicker";
 
 const PLATFORM_OPTIONS: Platform[] = [
@@ -23,6 +24,7 @@ export interface ListenerFormValue {
   subject: string;
   mode: ListenerMode;
   visibility?: ListenerVisibility;
+  scanIntervalMinutes?: number;
   slackWebhookUrl?: string;
   slackMinScore?: number;
   keywords: KeywordBundle;
@@ -52,6 +54,9 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
   const [mode, setMode] = useState<ListenerMode>(initial?.mode ?? "news");
   const [visibility, setVisibility] = useState<ListenerVisibility>(
     initial?.visibility ?? "private",
+  );
+  const [scanIntervalMinutes, setScanIntervalMinutes] = useState<number>(
+    initial?.scanIntervalMinutes ?? 1440,
   );
   const [slackWebhookUrl, setSlackWebhookUrl] = useState(
     initial?.slackWebhookUrl ?? "",
@@ -177,6 +182,7 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
         subject: subject.trim(),
         mode,
         visibility,
+        scanIntervalMinutes,
         slackWebhookUrl: slackWebhookUrl.trim() || undefined,
         slackMinScore,
         keywords: {
@@ -247,6 +253,16 @@ export default function ListenerForm({ initial, submitLabel, onSubmit }: Props) 
         <div className="field">
           <label>Visibility</label>
           <VisibilityPicker value={visibility} onChange={setVisibility} small />
+        </div>
+        <div className="field">
+          <label>
+            Auto-scan frequency{" "}
+            <span className="hint">— how often the cron runs this</span>
+          </label>
+          <ScanFrequencyPicker
+            value={scanIntervalMinutes}
+            onChange={setScanIntervalMinutes}
+          />
         </div>
         <div className="field">
           <label>Listener name</label>

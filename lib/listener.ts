@@ -66,6 +66,14 @@ function normalizeMaxAudience(v: unknown): number | undefined {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
 }
 
+/** Clamp scan interval to a sensible range: 60 min → 30 days. */
+function normalizeScanInterval(v: unknown): number | undefined {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  const i = Math.floor(n);
+  return Math.max(60, Math.min(60 * 24 * 30, i));
+}
+
 function normalizeWebhook(v: unknown): string | undefined {
   if (typeof v !== "string") return undefined;
   const t = v.trim();
@@ -156,6 +164,7 @@ export function makeListener(body: any, ownerId?: string): Listener {
     subjects: normalizeSubjects(body?.subjects),
     maxAgeDays: normalizeMaxAge(body?.maxAgeDays),
     maxAudience: normalizeMaxAudience(body?.maxAudience),
+    scanIntervalMinutes: normalizeScanInterval(body?.scanIntervalMinutes),
     slackWebhookUrl: normalizeWebhook(body?.slackWebhookUrl),
     slackMinScore: normalizeMinScore(body?.slackMinScore),
     keywords: normalizeKeywords(body?.keywords),
@@ -198,6 +207,10 @@ export function applyEdit(existing: Listener, body: any): Listener {
       body?.maxAudience !== undefined
         ? normalizeMaxAudience(body.maxAudience)
         : existing.maxAudience,
+    scanIntervalMinutes:
+      body?.scanIntervalMinutes !== undefined
+        ? normalizeScanInterval(body.scanIntervalMinutes)
+        : existing.scanIntervalMinutes,
     slackWebhookUrl:
       body?.slackWebhookUrl !== undefined
         ? normalizeWebhook(body.slackWebhookUrl)

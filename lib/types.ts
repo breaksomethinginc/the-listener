@@ -141,6 +141,10 @@ export interface Listener {
   /** Voices: max creator follower/subscriber count to keep. Items with
    *  more get dropped; items with unknown follower count pass through. */
   maxAudience?: number;
+  /** How often the cron should auto-scan this listener, in minutes.
+   *  Undefined → daily (1440). The cron skips listeners whose
+   *  lastRunAt is younger than (now - scanIntervalMinutes). */
+  scanIntervalMinutes?: number;
   /** Slack Incoming Webhook URL. When set, top new results are posted
    *  to the channel after each scan (manual + cron). */
   slackWebhookUrl?: string;

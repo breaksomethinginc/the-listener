@@ -7,6 +7,7 @@ import type {
   KeywordBundle,
   ListenerVisibility,
 } from "@/lib/types";
+import ScanFrequencyPicker from "./ScanFrequencyPicker";
 import VisibilityPicker from "./VisibilityPicker";
 
 // ── time options ─────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ export interface VoicesWizardResult {
   subject: string;
   mode: "voices";
   visibility: ListenerVisibility;
+  scanIntervalMinutes?: number;
   context?: string;
   maxAgeDays?: number;
   maxAudience?: number;
@@ -59,6 +61,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
   const [maxAudience, setMaxAudience] = useState<number>(0); // 0 = no cap
   const [customAudience, setCustomAudience] = useState<string>("");
   const [visibility, setVisibility] = useState<ListenerVisibility>("private");
+  const [scanIntervalMinutes, setScanIntervalMinutes] = useState<number>(1440);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
@@ -103,6 +106,7 @@ export default function VoicesWizard({ onSubmit }: Props) {
         subject: name.trim(),
         mode: "voices",
         visibility,
+        scanIntervalMinutes,
         context: context.trim() || undefined,
         maxAgeDays: maxAgeDays > 0 ? maxAgeDays : undefined,
         maxAudience: maxAudience > 0 ? maxAudience : undefined,
@@ -384,6 +388,14 @@ export default function VoicesWizard({ onSubmit }: Props) {
           <div className="field" style={{ marginBottom: 4 }}>
             <label>Visibility</label>
             <VisibilityPicker value={visibility} onChange={setVisibility} small />
+          </div>
+
+          <div className="field" style={{ marginBottom: 4 }}>
+            <label>Auto-scan frequency</label>
+            <ScanFrequencyPicker
+              value={scanIntervalMinutes}
+              onChange={setScanIntervalMinutes}
+            />
           </div>
 
           <div style={{ marginTop: 16 }}>

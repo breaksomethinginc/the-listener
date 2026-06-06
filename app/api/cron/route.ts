@@ -23,8 +23,29 @@ export async function GET(req: Request) {
   const store = getStore();
   const listeners = await store.all();
   const ran: any[] = [];
+  const now = Date.now();
+  const DEFAULT_INTERVAL_MIN = 1440; // once a day
 
   for (const listener of listeners) {
+    // Respect per-listener interval. If lastRunAt is younger than the
+    // interval, skip this round. (First-time listeners with no
+    // lastRunAt always run.)
+    const intervalMs =
+      (listener.scanIntervalMinutes ?? DEFAULT_INTERVAL_MIN) * 60_000;
+    if (listener.lastRunAt) {
+      const since = now - new Date(listener.lastRunAt).getTime();
+      // Allow a 60s slop so an "every hour" listener doesn't get
+      // skipped because the cron fires a few seconds early.
+      if (since + 60_000 < intervalMs) {
+        ran.push({
+          id: listener.id,
+          name: listener.name,
+          skipped: "not due",
+          nextInMin: Math.round((intervalMs - since) / 60_000),
+        });
+        continue;
+      }
+    }
     try {
       const result = await runScan(listener);
       listener.lastResult = result;

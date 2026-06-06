@@ -8,6 +8,7 @@ import type {
   ListenerVisibility,
   SubjectDef,
 } from "@/lib/types";
+import ScanFrequencyPicker from "./ScanFrequencyPicker";
 import VisibilityPicker from "./VisibilityPicker";
 
 // ── time options ─────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ export interface RaceWizardResult {
   subject: string;
   mode: "race";
   visibility: ListenerVisibility;
+  scanIntervalMinutes?: number;
   context?: string;
   subjects: SubjectDef[];
   maxAgeDays?: number;
@@ -79,6 +81,7 @@ export default function RaceWizard({ onSubmit }: Props) {
   ]);
   const [maxAgeDays, setMaxAgeDays] = useState<number>(90);
   const [visibility, setVisibility] = useState<ListenerVisibility>("private");
+  const [scanIntervalMinutes, setScanIntervalMinutes] = useState<number>(1440);
   const [coverage, setCoverage] = useState<Coverage>({
     ofThem: true,
     aboutThem: true,
@@ -167,6 +170,7 @@ export default function RaceWizard({ onSubmit }: Props) {
         subject: raceName.trim(),
         mode: "race",
         visibility,
+        scanIntervalMinutes,
         context: raceContext.trim() || undefined,
         subjects,
         maxAgeDays: maxAgeDays > 0 ? maxAgeDays : undefined,
@@ -485,6 +489,14 @@ export default function RaceWizard({ onSubmit }: Props) {
           <div className="field" style={{ marginBottom: 4 }}>
             <label>Visibility</label>
             <VisibilityPicker value={visibility} onChange={setVisibility} small />
+          </div>
+
+          <div className="field" style={{ marginBottom: 4 }}>
+            <label>Auto-scan frequency</label>
+            <ScanFrequencyPicker
+              value={scanIntervalMinutes}
+              onChange={setScanIntervalMinutes}
+            />
           </div>
 
           <div style={{ marginTop: 16 }}>

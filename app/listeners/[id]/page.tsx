@@ -100,6 +100,26 @@ export default function ListenerDetailPage() {
 
   const activeSources = listener.sources.filter((s) => s.enabled).length;
 
+  // "next auto-scan in 5h" — purely cosmetic, computed from interval
+  // and last run time. Defaults to once daily.
+  const intervalMin = listener.scanIntervalMinutes ?? 1440;
+  const lastRunMs = listener.lastRunAt
+    ? new Date(listener.lastRunAt).getTime()
+    : 0;
+  const nextRunMs = lastRunMs
+    ? lastRunMs + intervalMin * 60_000
+    : Date.now();
+  const minsUntilNext = Math.max(
+    0,
+    Math.round((nextRunMs - Date.now()) / 60_000),
+  );
+  function fmtMins(m: number): string {
+    if (m <= 0) return "due now";
+    if (m < 60) return `in ${m}m`;
+    if (m < 1440) return `in ${Math.round(m / 60)}h`;
+    return `in ${Math.round(m / 1440)}d`;
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -118,6 +138,12 @@ export default function ListenerDetailPage() {
             {listener.lastRunAt
               ? `last scan ${timeAgo(listener.lastRunAt)}`
               : "never scanned"}
+            {" · "}
+            <span
+              title={`Auto-scan every ${intervalMin >= 1440 ? `${Math.round(intervalMin / 1440)}d` : intervalMin >= 60 ? `${Math.round(intervalMin / 60)}h` : `${intervalMin}m`}`}
+            >
+              next auto-scan {fmtMins(minsUntilNext)}
+            </span>
           </p>
         </div>
         <div className="row">
@@ -175,6 +201,7 @@ export default function ListenerDetailPage() {
             subject: listener.subject,
             mode: listener.mode ?? "news",
             visibility: listener.visibility ?? "private",
+            scanIntervalMinutes: listener.scanIntervalMinutes,
             slackWebhookUrl: listener.slackWebhookUrl,
             slackMinScore: listener.slackMinScore,
             keywords: listener.keywords,
