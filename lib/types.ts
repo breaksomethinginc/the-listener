@@ -99,7 +99,23 @@ export interface ScanResult {
   ranked: CandidateItem[];
 }
 
-export type ListenerMode = "news" | "video" | "voices";
+export type ListenerMode = "news" | "video" | "voices" | "race";
+
+/** One candidate inside a race-mode listener. */
+export interface SubjectDef {
+  /** Display name — e.g. "Mark Kelly". */
+  name: string;
+  /** Optional disambiguating context — "incumbent, Democrat". */
+  context?: string;
+  /** Optional social handles for the candidate's own posts. */
+  handles?: {
+    youtube?: string;
+    tiktok?: string;
+    instagram?: string;
+    x?: string;
+    facebook?: string;
+  };
+}
 export type ListenerKind = "person" | "organization" | "event" | "topic";
 export type ListenerVisibility = "private" | "shared";
 
@@ -118,11 +134,21 @@ export interface Listener {
   kind?: ListenerKind;
   /** Disambiguating context, e.g. "US Senator, Arizona, Democrat". */
   context?: string;
+  /** For race-mode listeners — the slate of candidates being tracked. */
+  subjects?: SubjectDef[];
   /** Hard time filter — items older than this are dropped before scoring. Undefined = no filter. */
   maxAgeDays?: number;
   /** Voices: max creator follower/subscriber count to keep. Items with
    *  more get dropped; items with unknown follower count pass through. */
   maxAudience?: number;
+  /** Slack Incoming Webhook URL. When set, top new results are posted
+   *  to the channel after each scan (manual + cron). */
+  slackWebhookUrl?: string;
+  /** Minimum viral score for an item to be eligible for Slack posting. */
+  slackMinScore?: number;
+  /** FIFO dedupe ledger — IDs we've already posted, so reruns don't
+   *  spam Slack with the same items. Capped to ~500 entries. */
+  postedItemIds?: string[];
   keywords: KeywordBundle;
   sources: FeedSource[];
   createdAt: string;

@@ -8,7 +8,7 @@ interface ListenerCard {
   id: string;
   name: string;
   subject: string;
-  mode?: "news" | "video" | "voices";
+  mode?: "news" | "video" | "voices" | "race";
   visibility?: "private" | "shared";
   ownerId?: string;
   sources: { enabled: boolean }[];
@@ -20,6 +20,7 @@ interface ListenerCard {
 function modeBadge(mode: ListenerCard["mode"]) {
   if (mode === "video") return { emoji: "🎥", title: "Video listener" };
   if (mode === "voices") return { emoji: "🗣", title: "Voices listener" };
+  if (mode === "race") return { emoji: "🏁", title: "Race listener" };
   return { emoji: "📰", title: "News listener" };
 }
 

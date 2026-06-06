@@ -80,6 +80,26 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {/* Ambient background — two tin-can telephones with chattering teeth.
+            Looped, muted, behind a dark teal gradient overlay so cards and
+            text stay readable. The visual gag matches "professionally nosy". */}
+        <video
+          className="bg-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster="/bg.jpg"
+          aria-hidden
+        >
+          {/* WebM/VP9 first — open codec, smaller file, plays in every
+              modern browser including Chromium variants without H.264. */}
+          <source src="/bg.webm" type="video/webm" />
+          <source src="/bg.mp4" type="video/mp4" />
+        </video>
+        <div className="bg-overlay" aria-hidden />
+
         <header className="topbar">
           <Link href="/" className="brand">
             <EarMark />

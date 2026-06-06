@@ -1,10 +1,13 @@
 :root {
   --bg: #0c0f14;
   --bg-soft: #12161f;
-  --panel: #161b26;
-  --panel-2: #1c2333;
-  --border: #283042;
-  --border-soft: #1f2633;
+  /* Panels are now translucent so the ambient bg video peeks through.
+     Solid fallbacks still apply on browsers without backdrop-filter. */
+  --panel: rgba(22, 27, 38, 0.78);
+  --panel-solid: #161b26;
+  --panel-2: rgba(28, 35, 51, 0.85);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
   --text: #e8ecf3;
   --text-dim: #9aa6bd;
   --text-faint: #5f6b82;
@@ -13,8 +16,8 @@
   --accent-ink: #04201d;
   --warn: #f0b35e;
   --danger: #ef6b6b;
-  --radius: 12px;
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --radius: 14px;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -22,12 +25,35 @@
 html, body {
   margin: 0;
   padding: 0;
+  /* Solid dark color shows before the bg video paints in. */
   background: var(--bg);
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
+
+/* ── Ambient background video ─────────────────────────────────
+   Full-bleed looping clip behind everything. Sits at z-index 0
+   (not negative) to avoid the "negative z-index hidden by body
+   background" CSS gotcha. */
+.bg-video {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  object-fit: cover; object-position: center;
+  z-index: 0;
+  pointer-events: none;
+}
+.bg-overlay {
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 70% at center, rgba(12, 15, 20, 0.4) 0%, rgba(12, 15, 20, 0.85) 100%),
+    linear-gradient(180deg, rgba(8, 30, 28, 0.35) 0%, rgba(12, 15, 20, 0.6) 100%);
+}
+/* All real content sits above the bg layers. */
+.topbar, .main { position: relative; z-index: 2; }
 
 a { color: inherit; text-decoration: none; }
 
@@ -37,8 +63,9 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   padding: 14px 24px;
   border-bottom: 1px solid var(--border-soft);
-  background: rgba(12, 15, 20, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 14, 20, 0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -152,7 +179,10 @@ a { color: inherit; text-decoration: none; }
   gap: 16px;
   margin-bottom: 24px;
 }
-h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.02em; }
+h1 {
+  font-size: 28px; margin: 0 0 4px;
+  letter-spacing: -0.025em; font-weight: 700;
+}
 h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; }
 .subtle { color: var(--text-dim); font-size: 14px; margin: 0; }
 .faint { color: var(--text-faint); font-size: 13px; }
@@ -165,14 +195,22 @@ h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; }
 }
 .card {
   background: var(--panel);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   padding: 18px;
-  transition: border-color 0.15s ease, transform 0.08s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.15s ease, transform 0.12s ease,
+              box-shadow 0.2s ease;
 }
 .card.link:hover {
-  border-color: var(--accent-dim);
-  transform: translateY(-2px);
+  border-color: rgba(61, 215, 198, 0.45);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35),
+              0 0 24px rgba(61, 215, 198, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .card-title {
   font-size: 16px;
@@ -240,7 +278,7 @@ h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; }
 .field .hint { font-weight: 400; color: var(--text-faint); }
 input[type="text"], input[type="number"], textarea, select {
   width: 100%;
-  background: var(--bg-soft);
+  background: rgba(18, 22, 31, 0.7);
   border: 1px solid var(--border);
   border-radius: 9px;
   color: var(--text);
@@ -248,17 +286,25 @@ input[type="text"], input[type="number"], textarea, select {
   font-size: 14px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-input:focus, textarea:focus, select:focus { border-color: var(--accent-dim); }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  background: rgba(18, 22, 31, 0.85);
+  box-shadow: 0 0 0 3px rgba(61, 215, 198, 0.15);
+}
 textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
 
 .panel {
   background: var(--panel);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .row { display: flex; gap: 10px; align-items: center; }
@@ -354,9 +400,13 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
 .empty {
   text-align: center;
   padding: 60px 20px;
+  background: var(--panel);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   color: var(--text-dim);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .empty h2 { color: var(--text); }
 .banner {

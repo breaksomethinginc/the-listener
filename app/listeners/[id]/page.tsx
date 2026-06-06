@@ -164,7 +164,10 @@ export default function ListenerDetailPage() {
       </div>
 
       {tab === "results" ? (
-        <ScanResults result={listener.lastResult ?? null} />
+        <ScanResults
+          result={listener.lastResult ?? null}
+          subjects={listener.subjects}
+        />
       ) : (
         <ListenerForm
           initial={{
@@ -172,6 +175,8 @@ export default function ListenerDetailPage() {
             subject: listener.subject,
             mode: listener.mode ?? "news",
             visibility: listener.visibility ?? "private",
+            slackWebhookUrl: listener.slackWebhookUrl,
+            slackMinScore: listener.slackMinScore,
             keywords: listener.keywords,
             sources: listener.sources,
           }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CandidateItem, ScanResult } from "@/lib/types";
+import type { CandidateItem, ScanResult, SubjectDef } from "@/lib/types";
 import { cx, timeAgo } from "./util";
 import Embed from "./Embed";
 
@@ -220,7 +220,13 @@ const SCORE_TOOLTIP =
   "Viral score (0–100). Combines reach (log-scaled views), engagement rate (likes/views, comments/views), and recency. Items without view data fall back to recency only. Items must also match your keywords to appear.";
 
 // ── result row ───────────────────────────────────────────────────────
-function ResultRow({ item }: { item: CandidateItem }) {
+interface ResultRowProps {
+  item: CandidateItem;
+  /** When set (race mode), shown as a chip in the meta row. */
+  candidateName?: string;
+}
+
+function ResultRow({ item, candidateName }: ResultRowProps) {
   const [playing, setPlaying] = useState(false);
   const tier = viralTier(item.score);
   const dur = fmtDuration(item.durationSec);
@@ -429,6 +435,20 @@ function ResultRow({ item }: { item: CandidateItem }) {
         {item.summary ? <p className="result-summary">{item.summary}</p> : null}
 
         <div className="result-meta">
+          {candidateName ? (
+            <span
+              className="chip"
+              title="Tagged to this candidate"
+              style={{
+                background: "rgba(61, 215, 198, 0.12)",
+                color: "var(--accent)",
+                border: "1px solid rgba(61, 215, 198, 0.3)",
+                fontWeight: 600,
+              }}
+            >
+              🏁 {candidateName}
+            </span>
+          ) : null}
           {platformLabel ? (
             <span className="chip" style={{ background: "rgba(255,255,255,0.05)" }}>
               {platformLabel}
@@ -563,9 +583,40 @@ function downloadCsv(items: CandidateItem[]) {
 }
 
 // ── shell ────────────────────────────────────────────────────────────
-export default function ScanResults({ result }: { result: ScanResult | null }) {
+interface ScanResultsProps {
+  result: ScanResult | null;
+  /** For race-mode listeners — surfaces a per-candidate filter row above
+   *  the category chips. */
+  subjects?: SubjectDef[];
+}
+
+/**
+ * Which candidate (if any) does an item match? Tested against the item's
+ * matchedTerms (case-insensitive). First match wins. Returns undefined
+ * when no candidate is mentioned.
+ */
+function matchedCandidate(
+  item: CandidateItem,
+  subjects: SubjectDef[] | undefined,
+): string | undefined {
+  if (!subjects || subjects.length === 0) return undefined;
+  const hay = (item.matchedTerms || []).map((t) => t.toLowerCase());
+  for (const s of subjects) {
+    const n = s.name.toLowerCase();
+    if (hay.includes(n)) return s.name;
+  }
+  // Fallback — name appears verbatim in the title/summary.
+  const text = `${item.title} ${item.summary ?? ""}`.toLowerCase();
+  for (const s of subjects) {
+    if (text.includes(s.name.toLowerCase())) return s.name;
+  }
+  return undefined;
+}
+
+export default function ScanResults({ result, subjects }: ScanResultsProps) {
   const [filter, setFilter] = useState("");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [candFilter, setCandFilter] = useState<string | null>(null);
 
   const allRanked = result?.ranked ?? [];
 
@@ -589,15 +640,35 @@ export default function ScanResults({ result }: { result: ScanResult | null }) {
     });
   }, [categoryCounts]);
 
+  // Per-candidate counts for the race-mode chip row.
+  const candidateCounts = useMemo(() => {
+    if (!subjects || subjects.length === 0) return null;
+    const counts = new Map<string, number>();
+    let unmatched = 0;
+    for (const it of allRanked) {
+      const c = matchedCandidate(it, subjects);
+      if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+      else unmatched++;
+    }
+    return { counts, unmatched };
+  }, [allRanked, subjects]);
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     return allRanked.filter((it) => {
       if (hidden.has(categoryOf(it))) return false;
+      if (candFilter) {
+        if (candFilter === "__race__") {
+          if (matchedCandidate(it, subjects)) return false;
+        } else {
+          if (matchedCandidate(it, subjects) !== candFilter) return false;
+        }
+      }
       if (!q) return true;
       const hay = `${it.title} ${it.summary ?? ""} ${it.source} ${it.creator ?? ""} ${it.matchedTerms.join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRanked, filter, hidden]);
+  }, [allRanked, filter, hidden, candFilter, subjects]);
 
   function toggleCategory(c: string) {
     setHidden((prev) => {
@@ -662,6 +733,97 @@ export default function ScanResults({ result }: { result: ScanResult | null }) {
           ) : null}
         </div>
       </div>
+
+      {candidateCounts && subjects && subjects.length > 0 ? (
+        <div
+          className="row"
+          style={{
+            gap: 6,
+            flexWrap: "wrap",
+            marginBottom: 10,
+            alignItems: "center",
+          }}
+        >
+          <span
+            className="faint"
+            style={{ fontSize: 11, marginRight: 4 }}
+            title="Click to filter results to one candidate"
+          >
+            🏁 BY CANDIDATE
+          </span>
+          {subjects.map((s) => {
+            const count = candidateCounts.counts.get(s.name) ?? 0;
+            const active = candFilter === s.name;
+            return (
+              <button
+                key={s.name}
+                type="button"
+                onClick={() => setCandFilter(active ? null : s.name)}
+                className="chip"
+                style={{
+                  cursor: "pointer",
+                  background: active
+                    ? "rgba(61, 215, 198, 0.18)"
+                    : "transparent",
+                  color: active ? "var(--accent)" : "var(--text-dim)",
+                  border: `1px solid ${active ? "rgba(61, 215, 198, 0.5)" : "var(--border-soft)"}`,
+                  padding: "3px 9px",
+                  fontSize: 12,
+                  borderRadius: 999,
+                  fontWeight: active ? 600 : 400,
+                }}
+              >
+                {s.name} · {count}
+              </button>
+            );
+          })}
+          {candidateCounts.unmatched > 0 ? (
+            <button
+              type="button"
+              onClick={() =>
+                setCandFilter(candFilter === "__race__" ? null : "__race__")
+              }
+              className="chip"
+              style={{
+                cursor: "pointer",
+                background:
+                  candFilter === "__race__"
+                    ? "rgba(61, 215, 198, 0.18)"
+                    : "transparent",
+                color:
+                  candFilter === "__race__"
+                    ? "var(--accent)"
+                    : "var(--text-dim)",
+                border: `1px solid ${candFilter === "__race__" ? "rgba(61, 215, 198, 0.5)" : "var(--border-soft)"}`,
+                padding: "3px 9px",
+                fontSize: 12,
+                borderRadius: 999,
+              }}
+              title="Items not tagged to a specific candidate"
+            >
+              race-wide · {candidateCounts.unmatched}
+            </button>
+          ) : null}
+          {candFilter ? (
+            <button
+              type="button"
+              onClick={() => setCandFilter(null)}
+              className="chip"
+              style={{
+                cursor: "pointer",
+                background: "transparent",
+                border: "1px dashed var(--border-soft)",
+                padding: "3px 9px",
+                fontSize: 12,
+                borderRadius: 999,
+                color: "var(--text-dim)",
+              }}
+            >
+              clear
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {orderedCategories.length > 1 ? (
         <div
@@ -757,7 +919,11 @@ export default function ScanResults({ result }: { result: ScanResult | null }) {
       ) : (
         <div className="panel" style={{ padding: "2px 20px" }}>
           {filtered.map((item) => (
-            <ResultRow key={item.id} item={item} />
+            <ResultRow
+              key={item.id}
+              item={item}
+              candidateName={matchedCandidate(item, subjects)}
+            />
           ))}
         </div>
       )}

@@ -77,6 +77,31 @@ export interface VoicesInput {
   includeDiscussion?: boolean;
 }
 
+/** One candidate inside a Race wizard payload. */
+export interface RaceCandidate {
+  name: string;
+  context?: string;
+  handles?: {
+    youtube?: string;
+    tiktok?: string;
+    instagram?: string;
+    x?: string;
+    facebook?: string;
+  };
+}
+
+/** Wizard input for Race mode — multiple candidates + race-level context. */
+export interface RaceInput {
+  /** Race name — "2026 Arizona Senate Race". */
+  name: string;
+  /** Optional context — "US Senate, Arizona, 2026 cycle". */
+  context?: string;
+  /** The slate. Must include at least one candidate. */
+  candidates: RaceCandidate[];
+  coverage: Coverage;
+  maxAgeDays?: number;
+}
+
 // ── helpers ───────────────────────────────────────────────────────────
 
 function clean(s: string): string {
@@ -478,6 +503,213 @@ export function buildVoicesFromIntent(
 
   return {
     keywords: buildVoicesKeywords(input),
+    sources,
+  };
+}
+
+// ── Race mode ─────────────────────────────────────────────────────────
+// A race listener tracks multiple candidates simultaneously. We build
+// a union: for each candidate, the same shape as Video mode (their
+// own handles + searches + hashtag), PLUS race-level coverage (search
+// for the race name, news channels filtered to the race, articles).
+
+/** Boost terms common to political races. */
+const RACE_BOOST = [
+  "debate",
+  "primary",
+  "general",
+  "election",
+  "campaign",
+  "poll",
+  "polling",
+  "town hall",
+  "endorse",
+  "endorsement",
+  "rally",
+  "ad spend",
+];
+
+function buildRaceKeywords(input: RaceInput): KeywordBundle {
+  const raceName = clean(input.name);
+  // Anchor on race name + every candidate name. Any one of these
+  // matching is enough to surface the item.
+  const any: string[] = [raceName];
+  for (const c of input.candidates) {
+    const n = clean(c.name);
+    if (n && !any.includes(n)) any.push(n);
+  }
+  // Boost terms = race jargon + race-level context terms.
+  const boost = [...RACE_BOOST, ...contextTerms(input.context)];
+  return { any, boost, veto: [] };
+}
+
+export function buildRaceFromIntent(
+  input: RaceInput,
+  keys: AvailableKeys,
+): AutofillOutput {
+  const raceName = clean(input.name);
+  const sources: FeedSource[] = [];
+
+  // ── Per-candidate coverage ───────────────────────────────────────
+  // For each candidate, run the same source-generation we'd do for a
+  // single-subject Video listener — their own handles + targeted
+  // searches. We tag the IDs with the candidate's slug so the UI can
+  // group results later.
+  for (const cand of input.candidates) {
+    const candName = clean(cand.name);
+    if (!candName) continue;
+    const candSlug = makeSlug(candName);
+    const candTag = hashtag(candName);
+    const h = cand.handles || {};
+
+    if (input.coverage.ofThem !== false) {
+      if (h.youtube) {
+        sources.push({
+          id: id(`cand-yt-own-${candSlug}`, h.youtube),
+          label: `YouTube — @${h.youtube.replace(/^@+/, "")} (${candName})`,
+          url: `@${h.youtube.replace(/^@+/, "")}`,
+          platform: "youtube",
+          enabled: true,
+          trustWeight: 1.4,
+        });
+      }
+      if (h.tiktok && keys.apify) {
+        sources.push({
+          id: id(`cand-tt-own-${candSlug}`, h.tiktok),
+          label: `TikTok — @${h.tiktok.replace(/^@+/, "")} (${candName})`,
+          url: `@${h.tiktok.replace(/^@+/, "")}`,
+          platform: "tiktok",
+          enabled: true,
+          trustWeight: 1.3,
+        });
+      }
+      if (h.instagram && keys.apify) {
+        sources.push({
+          id: id(`cand-ig-own-${candSlug}`, h.instagram),
+          label: `Instagram — @${h.instagram.replace(/^@+/, "")} (${candName})`,
+          url: `@${h.instagram.replace(/^@+/, "")}`,
+          platform: "instagram",
+          enabled: true,
+          trustWeight: 1.3,
+        });
+      }
+      if (h.x) {
+        sources.push({
+          id: id(`cand-x-own-${candSlug}`, h.x),
+          label: `X — @${h.x.replace(/^@+/, "")} (${candName})`,
+          url: `@${h.x.replace(/^@+/, "")}`,
+          platform: "x",
+          enabled: true,
+          trustWeight: 1.2,
+        });
+      }
+    }
+
+    if (input.coverage.aboutThem !== false) {
+      if (keys.youtube || keys.apify) {
+        const ctxWord = contextTerms(cand.context)[0];
+        const phrase = ctxWord ? `"${candName}" ${ctxWord}` : `"${candName}"`;
+        sources.push({
+          id: id(`cand-yt-search-${candSlug}`, candName),
+          label: `YouTube search — ${phrase}`,
+          url: phrase,
+          platform: "youtube",
+          enabled: true,
+          trustWeight: 1,
+        });
+      }
+      if (keys.apify) {
+        sources.push({
+          id: id(`cand-tt-tag-${candSlug}`, candTag),
+          label: `TikTok #${candTag} (${candName})`,
+          url: `#${candTag}`,
+          platform: "tiktok",
+          enabled: true,
+          trustWeight: 0.9,
+        });
+        sources.push({
+          id: id(`cand-ig-tag-${candSlug}`, candTag),
+          label: `Instagram #${candTag} (${candName})`,
+          url: `#${candTag}`,
+          platform: "instagram",
+          enabled: true,
+          trustWeight: 0.9,
+        });
+      }
+    }
+  }
+
+  // ── Race-level coverage ──────────────────────────────────────────
+  const raceSlug = makeSlug(raceName);
+  const raceEnc = encodeURIComponent(raceName);
+
+  // News channels: each major outlet's recent uploads, scoring will
+  // narrow to items mentioning the race or any candidate.
+  if (input.coverage.newsClips) {
+    for (const ch of MAJOR_NEWS_CHANNELS) {
+      sources.push({
+        id: id(`race-news-${raceSlug}`, ch.slug),
+        label: `${ch.name} on YouTube (filtered to race)`,
+        url: ch.channelId,
+        platform: "youtube",
+        enabled: true,
+        trustWeight: 1.1,
+      });
+    }
+  }
+
+  // Articles for the race itself.
+  if (input.coverage.articles !== false) {
+    sources.push({
+      id: id(`race-gnews-${raceSlug}`, raceName),
+      label: `Google News — ${raceName}`,
+      url: `https://news.google.com/rss/search?q=${raceEnc}&hl=en-US&gl=US&ceid=US:en`,
+      platform: "rss",
+      enabled: true,
+      trustWeight: 1,
+    });
+    sources.push({
+      id: id(`race-bing-${raceSlug}`, raceName),
+      label: `Bing News — ${raceName}`,
+      url: `https://www.bing.com/news/search?q=${raceEnc}&format=rss`,
+      platform: "rss",
+      enabled: true,
+      trustWeight: 1,
+    });
+    sources.push({
+      id: id(`race-brave-${raceSlug}`, raceName),
+      label: keys.brave
+        ? `Brave News — ${raceName}`
+        : `Brave News — ${raceName}  (needs BRAVE_API_KEY)`,
+      url: raceName,
+      platform: "brave",
+      enabled: keys.brave,
+      trustWeight: 1,
+    });
+  }
+
+  // Social discussion of the race.
+  if (input.coverage.social !== false) {
+    sources.push({
+      id: id(`race-reddit-${raceSlug}`, raceName),
+      label: `Reddit search — ${raceName}`,
+      url: `https://www.reddit.com/search.json?q=${raceEnc}&sort=new&limit=25`,
+      platform: "reddit",
+      enabled: true,
+      trustWeight: 0.8,
+    });
+    sources.push({
+      id: id(`race-bsky-${raceSlug}`, raceName),
+      label: `Bluesky search — ${raceName}`,
+      url: raceName,
+      platform: "bluesky",
+      enabled: true,
+      trustWeight: 0.8,
+    });
+  }
+
+  return {
+    keywords: buildRaceKeywords(input),
     sources,
   };
 }

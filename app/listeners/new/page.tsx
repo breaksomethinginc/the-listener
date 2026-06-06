@@ -6,19 +6,24 @@ import { useState } from "react";
 import NewsQuickStart, {
   type QuickStartResult,
 } from "@/components/NewsQuickStart";
+import RaceWizard, { type RaceWizardResult } from "@/components/RaceWizard";
 import VideoWizard, { type WizardResult } from "@/components/VideoWizard";
 import VoicesWizard, {
   type VoicesWizardResult,
 } from "@/components/VoicesWizard";
 
-type Mode = "news" | "video" | "voices";
+type Mode = "news" | "video" | "voices" | "race";
 
 export default function NewListenerPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("video");
 
   async function create(
-    value: QuickStartResult | WizardResult | VoicesWizardResult,
+    value:
+      | QuickStartResult
+      | WizardResult
+      | VoicesWizardResult
+      | RaceWizardResult,
   ) {
     const res = await fetch("/api/listeners", {
       method: "POST",
@@ -35,7 +40,9 @@ export default function NewListenerPage() {
       ? "Clips OF and ABOUT your subject across the web."
       : mode === "voices"
         ? "Just real people. No press, no outlets, no statements."
-        : "Broad text + social coverage of a topic.";
+        : mode === "race"
+          ? "Track every candidate plus race-wide news and chatter."
+          : "Broad text + social coverage of a topic.";
 
   return (
     <div>
@@ -71,6 +78,14 @@ export default function NewListenerPage() {
         </button>
         <button
           type="button"
+          className={`btn ${mode === "race" ? "btn-primary" : ""}`}
+          onClick={() => setMode("race")}
+          title="Track every candidate in a race plus race-level news and chatter."
+        >
+          🏁 Race
+        </button>
+        <button
+          type="button"
           className={`btn ${mode === "news" ? "btn-primary" : ""}`}
           onClick={() => setMode("news")}
           title="Articles, social posts, broad news coverage"
@@ -86,6 +101,8 @@ export default function NewListenerPage() {
         <VideoWizard onSubmit={create} />
       ) : mode === "voices" ? (
         <VoicesWizard onSubmit={create} />
+      ) : mode === "race" ? (
+        <RaceWizard onSubmit={create} />
       ) : (
         <NewsQuickStart onSubmit={create} />
       )}

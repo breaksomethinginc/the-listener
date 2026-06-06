@@ -15,6 +15,10 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/auth",
   "/api/cron",
   "/favicon",
+  // Static assets in public/ that the layout pulls in (background loop +
+  // poster). Without these, the auth gate redirects the <video> element
+  // to /login and the page renders as plain dark.
+  "/bg.",
 ];
 
 function isPublicPath(pathname: string): boolean {
