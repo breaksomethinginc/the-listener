@@ -51,7 +51,11 @@ export default function RootLayout({
           muted
           loop
           playsInline
-          preload="auto"
+          // `metadata` lets the browser pick a codec and grab dimensions
+          // without downloading the bytes during the critical-path race.
+          // The 64KB JPG poster is what the user actually sees first;
+          // the video paints in over the top once it's ready.
+          preload="metadata"
           poster="/bg.jpg"
           aria-hidden
         >
