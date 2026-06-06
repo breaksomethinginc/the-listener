@@ -17,6 +17,7 @@ export default function ListenerDetailPage() {
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
   const [tab, setTab] = useState<"results" | "settings">("results");
   const [scanning, setScanning] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -36,6 +37,7 @@ export default function ListenerDetailPage() {
 
   async function runScan() {
     setScanning(true);
+    setScanSuccess(false);
     setError(null);
     try {
       const res = await fetch(`/api/listeners/${id}/scan`, { method: "POST" });
@@ -47,6 +49,9 @@ export default function ListenerDetailPage() {
           : prev,
       );
       setTab("results");
+      // Flash the success mascot for a beat, then fade.
+      setScanSuccess(true);
+      window.setTimeout(() => setScanSuccess(false), 2800);
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -166,11 +171,50 @@ export default function ListenerDetailPage() {
         </div>
       </div>
 
-      {error ? <div className="banner error">⚠ {error}</div> : null}
+      {error ? (
+        <div className="banner error">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="banner-mascot"
+            src="/poses/error.svg"
+            alt=""
+            aria-hidden
+          />
+          <div>
+            <b>Scan failed.</b> {error}
+          </div>
+        </div>
+      ) : null}
       {scanning ? (
         <div className="banner">
-          Pulling and scoring {activeSources} source
-          {activeSources === 1 ? "" : "s"} — this usually takes a few seconds.
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="banner-mascot running"
+            src="/poses/loading.svg"
+            alt=""
+            aria-hidden
+          />
+          <div>
+            Pulling and scoring {activeSources} source
+            {activeSources === 1 ? "" : "s"} — this usually takes a few
+            seconds.
+          </div>
+        </div>
+      ) : null}
+      {scanSuccess && !scanning && !error ? (
+        <div className="banner success">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="banner-mascot"
+            src="/poses/success.svg"
+            alt=""
+            aria-hidden
+          />
+          <div>
+            <b>Scan complete.</b>{" "}
+            {listener.lastResult?.ranked?.length ?? 0} result
+            {(listener.lastResult?.ranked?.length ?? 0) === 1 ? "" : "s"}.
+          </div>
         </div>
       ) : null}
 

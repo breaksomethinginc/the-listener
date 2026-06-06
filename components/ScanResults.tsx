@@ -708,6 +708,8 @@ export default function ScanResults({ result, subjects }: ScanResultsProps) {
   if (!result) {
     return (
       <div className="empty">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="empty-mascot" src="/poses/wave.svg" alt="" aria-hidden />
         <h2>No scans yet</h2>
         <p className="subtle">
           Hit <b>Run scan</b> above to pull and score fresh results.
@@ -906,12 +908,32 @@ export default function ScanResults({ result, subjects }: ScanResultsProps) {
       ) : null}
 
       {errors.length > 0 ? (
-        <details style={{ marginBottom: 14 }}>
-          <summary>
-            {errors.length} source{errors.length === 1 ? "" : "s"} reported a
-            problem
+        <details
+          className="banner error"
+          style={{ marginBottom: 14, paddingTop: 10, paddingBottom: 10 }}
+        >
+          <summary
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              color: "var(--danger)",
+              listStyle: "none",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="banner-mascot"
+              src="/poses/error.svg"
+              alt=""
+              aria-hidden
+            />
+            <span>
+              {errors.length} source{errors.length === 1 ? "" : "s"} reported a
+              problem
+            </span>
           </summary>
-          <div className="stack" style={{ marginTop: 10 }}>
+          <div className="stack" style={{ marginTop: 10, paddingLeft: 52 }}>
             {errors.map((e, i) => (
               <div key={i} className="faint">
                 · <b>{e.sourceId}</b> — {e.message}
@@ -923,6 +945,8 @@ export default function ScanResults({ result, subjects }: ScanResultsProps) {
 
       {allRanked.length === 0 ? (
         <div className="empty">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="empty-mascot" src="/poses/empty.svg" alt="" aria-hidden />
           <h2>Nothing scored above zero</h2>
           <p className="subtle">
             No item matched your keywords this run. Try broadening the
@@ -931,6 +955,8 @@ export default function ScanResults({ result, subjects }: ScanResultsProps) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="empty">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="empty-mascot" src="/poses/search.svg" alt="" aria-hidden />
           <h2>No matches for &ldquo;{filter}&rdquo;</h2>
           <p className="subtle">Clear the filter to see all results again.</p>
         </div>
