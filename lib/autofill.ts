@@ -116,6 +116,17 @@ function stripAt(h: string): string {
   return h.replace(/^@+/, "").trim();
 }
 
+/** URL/ID-safe slug for use in source IDs and label prefixes. */
+function makeSlug(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 28) || "listener"
+  );
+}
+
 function hashtag(q: string): string {
   const words = q
     .toLowerCase()
