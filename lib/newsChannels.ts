@@ -25,8 +25,10 @@ export const MAJOR_NEWS_CHANNELS: NewsChannel[] = [
   { slug: "cbsnews", name: "CBS News", handle: "@CBSNews", channelId: "UC8p1vwvWtl6T73JiExfWs1g" },
   { slug: "nbcnews", name: "NBC News", handle: "@NBCNews", channelId: "UCeY0bbntWzzVIaj2z3QigXg" },
   { slug: "pbsnewshour", name: "PBS NewsHour", handle: "@PBSNewsHour", channelId: "UC6ZFN9Tx6xh-skXCuRHCDpQ" },
-  { slug: "cspan", name: "C-SPAN", handle: "@cspan", channelId: "UCb-beA5Z1KMfVvyVlBpZpYQ" },
-  { slug: "reuters", name: "Reuters", handle: "@Reuters", channelId: "UChqUTb7kYRX8-EiaN3XdGSQ" },
+  // C-SPAN and Reuters were here but their channel IDs returned HTTP 404
+  // from the YouTube feed endpoint as of June 2026 — removed until we
+  // can verify a working ID. (cspan-org has multiple channels; Reuters
+  // restructured theirs across Reuters / Reuters Plus / Reuters Pictures.)
   { slug: "bloomberg", name: "Bloomberg Television", handle: "@BloombergTelevision", channelId: "UCUMZ7gohGI9HcU9VNsr2FJQ" },
   { slug: "cnbc", name: "CNBC", handle: "@CNBC", channelId: "UCvJJ_dzjViJCoLf5uKUTwoA" },
   { slug: "skynews", name: "Sky News", handle: "@SkyNews", channelId: "UCoMdktPbSTixAyNGwb-UYkQ" },
